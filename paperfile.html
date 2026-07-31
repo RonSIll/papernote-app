@@ -10,102 +10,192 @@
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js"></script>
 <style>
   :root {
-    --bg: #ffffff; --bg2: #f4f4f6; --text: #1c1c1e; --text2: #6b6b70;
-    --text3: #a0a0a5; --border: #e3e3e6; --accent: #4f6bff; --red: #ff3b30;
-    --green: #16794f; --active: #84cc16; --active-on: #1c1c1e;
+    --bg: #f4f4f6; --bg2: #ffffff; --text: #1c1c1e; --text2: #6b6b70;
+    --text3: #a0a0a5; --border: #e3e3e6; --accent: #4f6bff; --red: #ff3b30; --green: #2e9e4a;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #000000; --bg2: #1c1c1e; --text: #f5f5f7; --text2: #98989d;
-      --text3: #6b6b70; --border: #2c2c2e; --accent: #7b8fff; --red: #ff453a;
-      --green: #4ade9e; --active: #a6e22e; --active-on: #1c1c1e;
+      --text3: #6b6b70; --border: #2c2c2e; --accent: #7b8fff; --red: #ff453a; --green: #4ade9e;
     }
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
+  html, body { margin: 0; min-height: 100%; }
   body {
-    margin: 0; display: flex; flex-direction: column;
     background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px; border-bottom: 0.5px solid var(--border); flex: 0 0 auto;
+  .page { max-width: 980px; margin: 0 auto; padding: 40px 32px 140px; }
+  .page[hidden] { display: none; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; gap: 20px; }
+  .topbar h1 { font-size: 19px; font-weight: 600; margin: 0 0 3px; letter-spacing: -0.01em; }
+  .topbar .sub { font-size: 13px; color: var(--text2); margin: 0; }
+  .topbar .sub button {
+    background: none; border: none; color: var(--accent); font-size: 13px; font-family: inherit;
+    cursor: pointer; padding: 0; margin-left: 8px; text-decoration: underline;
   }
-  header h1 { font-size: 18px; font-weight: 600; margin: 0; }
-  .iconBtn {
-    background: none; border: none; color: var(--text2); cursor: pointer;
-    padding: 6px; line-height: 1; display: flex; align-items: center;
-  }
-  main { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 900px; width: 100%; margin: 0 auto; padding: 16px 20px; gap: 12px; }
-  main[hidden] { display: none; }
-  #toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 0 0 auto; }
-  #toolbar select {
-    border: 1px solid var(--border); border-radius: 0; padding: 8px 10px; font-size: 14px;
-    background: var(--bg2); color: var(--text); font-family: inherit;
-  }
-  #toolbar button {
-    border: none; border-radius: 0; padding: 8px 14px; font-size: 14px; font-weight: 500; cursor: pointer;
-  }
-  #toolbar button:disabled { opacity: 0.5; cursor: default; }
-  #connectBtn { background: var(--accent); color: white; }
-  #fileBtn { background: var(--active); color: var(--active-on); }
-  #discardBtn { background: none; color: var(--red); border: 1px solid var(--red); }
-  #refreshBtn { background: none; color: var(--text2); border: 1px solid var(--border); }
-  #connectedLabel { font-size: 13px; color: var(--green); }
-  #list { flex: 1; overflow-y: auto; border: 1px solid var(--border); min-height: 0; }
-  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 0.5px solid var(--border); }
-  .row:last-child { border-bottom: none; }
-  .rowFilename {
-    flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 0;
-    padding: 6px 8px; font-size: 14px; background: var(--bg2); color: var(--text); font-family: inherit;
-  }
-  .rowMeta { flex: 0 0 auto; font-size: 12px; color: var(--text2); white-space: nowrap; }
-  #emptyState { padding: 30px; text-align: center; color: var(--text2); font-size: 14px; }
-  #status { font-size: 13px; min-height: 16px; flex: 0 0 auto; }
-  #status.ok { color: var(--green); }
-  #status.err { color: var(--red); }
-  #settings { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; max-width: 480px; width: 100%; margin: 0 auto; }
-  #settings[hidden] { display: none; }
-  #settings label { font-size: 12px; color: var(--text2); }
-  #settings input {
-    width: 100%; border: 1px solid var(--border); border-radius: 0;
-    padding: 8px 10px; font-size: 14px; background: var(--bg2); color: var(--text);
+  .fileAction { text-align: right; flex: 0 0 auto; }
+  .fileBtn {
+    background: var(--accent); color: #fff; border: none;
+    font-size: 14px; font-weight: 600; padding: 11px 20px; cursor: pointer;
     font-family: inherit;
   }
-  #settings .row2 { display: flex; flex-direction: column; gap: 3px; }
+  .fileBtn:disabled { opacity: 0.5; cursor: default; }
+  .fileAction .note { font-size: 11.5px; color: var(--text2); margin: 7px 0 0; max-width: 240px; line-height: 1.4; }
+
+  .colHeads {
+    display: grid; grid-template-columns: 96px minmax(150px,1fr) minmax(170px,1fr) minmax(150px,170px) 34px;
+    gap: 16px; padding: 0 0 8px; margin-bottom: 4px;
+  }
+  .colHeads span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); }
+
+  .rows { display: flex; flex-direction: column; gap: 10px; }
+  .rowGroup {
+    display: grid; grid-template-columns: 96px minmax(150px,1fr) minmax(170px,1fr) minmax(150px,170px) 34px;
+    gap: 16px; align-items: center;
+  }
+
+  .thumb {
+    width: 96px; height: 96px; background: var(--bg2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+  }
+  .thumb svg { width: 30px; height: 30px; color: var(--text3); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb.textPrev {
+    align-items: flex-start; justify-content: flex-start; padding: 9px; background: var(--bg);
+  }
+  .thumb.textPrev p {
+    margin: 0; font-size: 10.5px; line-height: 1.45; color: var(--text2);
+    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .card {
+    background: var(--bg2); border: 1px solid var(--border); padding: 16px 18px;
+    display: grid; grid-template-columns: minmax(150px,1fr) minmax(170px,1fr) minmax(150px,170px);
+    gap: 16px; align-items: center; grid-column: 2 / span 3;
+  }
+  .inheritedName { font-size: 14.5px; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; }
+
+  input[type="text"], select {
+    width: 100%; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 13.5px; padding: 9px 10px; font-family: inherit;
+  }
+  input[type="text"]::placeholder { color: var(--text3); }
+  input[type="text"]:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6b70'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 26px;
+  }
+  select.placeholder { color: var(--text3); }
+  select:disabled { opacity: 0.6; cursor: default; }
+
+  .trashBtn {
+    width: 34px; height: 34px; border: 1px solid var(--border); background: var(--bg2);
+    color: var(--text2); display: flex; align-items: center; justify-content: center; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .trashBtn:hover { border-color: var(--red); color: var(--red); }
+  .trashBtn svg { width: 15px; height: 15px; }
+
+  .errorBar {
+    grid-column: 2 / span 4; background: rgba(255,59,48,0.12); border: 1px solid var(--red);
+    color: var(--red); font-size: 12.5px; padding: 9px 12px; display: flex;
+    justify-content: space-between; align-items: center; gap: 12px; margin-top: -2px;
+  }
+  .errorBar span { flex: 1; }
+  .errorBar a { color: var(--red); font-weight: 600; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+
+  #emptyState { padding: 40px 0; text-align: center; color: var(--text2); font-size: 14px; }
+
+  #status { font-size: 13px; min-height: 16px; margin-top: 16px; }
+  #status.ok { color: var(--green); }
+  #status.err { color: var(--red); }
+
+  .gear {
+    position: fixed; left: 24px; bottom: 24px; width: 42px; height: 42px;
+    background: var(--bg2); border: 1px solid var(--border); display: flex;
+    align-items: center; justify-content: center; cursor: pointer;
+  }
+  .gear svg { width: 19px; height: 19px; color: var(--text2); }
+  .gear .dot {
+    position: absolute; top: -3px; right: -3px; width: 10px; height: 10px;
+    border-radius: 50%; background: var(--red); border: 2px solid var(--bg);
+  }
+  .gear .dot[hidden] { display: none; }
+
+  #settings { max-width: 480px; margin: 0 auto; padding: 40px 32px; display: flex; flex-direction: column; gap: 14px; }
+  #settings[hidden] { display: none; }
+  #settings h1 { font-size: 19px; font-weight: 600; margin: 0 0 4px; }
+  #settings .row2 { display: flex; flex-direction: column; gap: 5px; }
+  #settings label { font-size: 12px; color: var(--text2); }
+  #settings input {
+    width: 100%; border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+    padding: 9px 10px; font-size: 14px; font-family: inherit;
+  }
+  .connectRow {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border: 1px solid var(--border); background: var(--bg2); padding: 9px 10px; font-size: 13.5px;
+  }
+  .connectRow span { color: var(--text2); }
+  .connectRow button {
+    background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer; padding: 0;
+  }
   #saveSettingsBtn {
-    background: var(--accent); border: none; color: white;
-    border-radius: 0; padding: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+    background: var(--accent); border: none; color: #fff;
+    padding: 10px; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  #closeSettingsBtn {
+    background: none; border: none; color: var(--text2); font-size: 13px;
+    cursor: pointer; padding: 0; text-align: left; font-family: inherit;
+  }
+
+  @media (max-width: 720px) {
+    .colHeads, .rowGroup, .card { grid-template-columns: 1fr; }
+    .thumb { width: 100%; height: 140px; }
+    .card { grid-column: auto; }
+    .errorBar { grid-column: auto; }
   }
 </style>
 </head>
 <body>
-<header>
-  <h1>PaperFile</h1>
-  <button id="gearBtn" class="iconBtn" title="Settings">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-  </button>
-</header>
-<main id="main">
-  <div id="toolbar">
-    <input type="checkbox" id="selectAllCheck" title="Select all">
-    <select id="tagSelect" disabled>
-      <option value="">Tag&#8230;</option>
-    </select>
-    <button id="fileBtn" disabled>File Selected</button>
-    <button id="discardBtn" disabled>Discard Selected</button>
-    <button id="refreshBtn">Refresh</button>
-    <button id="connectBtn">Connect to OneDrive</button>
-    <span id="connectedLabel" hidden>Connected</span>
+
+<div class="page" id="page">
+  <div class="topbar">
+    <div>
+      <h1>PaperFile</h1>
+      <p class="sub" id="subheading">Loading…<button id="refreshBtn" type="button">Refresh</button></p>
+    </div>
+    <div class="fileAction">
+      <button class="fileBtn" id="fileBtn">File tagged notes</button>
+      <p class="note">Files any row with a tag already picked. Rows still showing "Tag…" are left in the inbox.</p>
+    </div>
   </div>
-  <div id="list"></div>
+
+  <div class="colHeads">
+    <span></span>
+    <span>Inherited note name</span>
+    <span>New note name</span>
+    <span>Tag note with...</span>
+    <span></span>
+  </div>
+
+  <div class="rows" id="list"></div>
   <div id="status"></div>
-</main>
+</div>
+
 <div id="settings" hidden>
+  <h1>Settings</h1>
+  <div class="row2">
+    <label>OneDrive</label>
+    <div class="connectRow">
+      <span id="odStatus">Not connected</span>
+      <button id="connectBtn" type="button">Connect</button>
+    </div>
+  </div>
   <div class="row2">
     <label for="patInput">GitHub token (fine-grained PAT, Contents: Read and write, scoped to papernote-data)</label>
     <input id="patInput" type="password" placeholder="ghp_...">
@@ -123,6 +213,14 @@
     <input id="azureClientIdInput" type="text" placeholder="00000000-0000-0000-0000-000000000000">
   </div>
   <button id="saveSettingsBtn">Save</button>
+</div>
+
+<div class="gear" id="gearBtn" title="Settings">
+  <div class="dot" id="gearDot"></div>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
 </div>
 
 <script>
@@ -143,25 +241,27 @@
   var TAG_ROOT_PATH = "Projects";
   var GRAPH_SCOPES = ["Files.ReadWrite"];
 
+  var PHOTO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14"/><circle cx="9" cy="10.5" r="1.6"/><path d="M3 16l5-4.5 4 3.5 3-3L21 16"/></svg>';
+  var DOC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15h6M9 18h3"/></svg>';
+  var TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+
   var el = {
-    main: document.getElementById("main"),
+    page: document.getElementById("page"),
+    subheading: document.getElementById("subheading"),
+    refreshBtn: document.getElementById("refreshBtn"),
+    fileBtn: document.getElementById("fileBtn"),
+    list: document.getElementById("list"),
+    status: document.getElementById("status"),
     gearBtn: document.getElementById("gearBtn"),
+    gearDot: document.getElementById("gearDot"),
     settings: document.getElementById("settings"),
+    odStatus: document.getElementById("odStatus"),
+    connectBtn: document.getElementById("connectBtn"),
     patInput: document.getElementById("patInput"),
     ownerInput: document.getElementById("ownerInput"),
     repoInput: document.getElementById("repoInput"),
     azureClientIdInput: document.getElementById("azureClientIdInput"),
-    saveSettingsBtn: document.getElementById("saveSettingsBtn"),
-    toolbar: document.getElementById("toolbar"),
-    selectAllCheck: document.getElementById("selectAllCheck"),
-    tagSelect: document.getElementById("tagSelect"),
-    fileBtn: document.getElementById("fileBtn"),
-    discardBtn: document.getElementById("discardBtn"),
-    refreshBtn: document.getElementById("refreshBtn"),
-    connectBtn: document.getElementById("connectBtn"),
-    connectedLabel: document.getElementById("connectedLabel"),
-    list: document.getElementById("list"),
-    status: document.getElementById("status")
+    saveSettingsBtn: document.getElementById("saveSettingsBtn")
   };
 
   var gh = null;
@@ -169,6 +269,9 @@
   var entries = [];
   var tags = []; // [{id, name}]
   var notesFolderCache = {}; // tagId -> "0000-02 Notes" folder id
+  var thumbCache = {}; // entry id -> data URI, avoids refetching a photo's bytes on every re-render
+  var lastErrors = {}; // entry id -> error message from the most recent failed filing attempt
+  var lastBranch = null;
   var msalApp = null;
   var msalInitPromise = null;
   var msalAccount = null;
@@ -194,16 +297,18 @@
     el.ownerInput.value = (gh && gh.owner) || DEFAULT_OWNER;
     el.repoInput.value = (gh && gh.repo) || DEFAULT_REPO;
     el.azureClientIdInput.value = (azure && azure.clientId) || "";
+    updateConnectRow();
     el.settings.hidden = false;
-    el.main.hidden = true;
+    el.page.hidden = true;
   }
   function closeSettings() {
     el.settings.hidden = true;
-    el.main.hidden = false;
+    el.page.hidden = false;
   }
 
   el.gearBtn.addEventListener("click", function () {
-    if (el.settings.hidden) { openSettings(); } else { closeSettings(); }
+    if (el.settings.hidden) { openSettings(); }
+    else if (gh && gh.pat) { closeSettings(); }
   });
 
   el.saveSettingsBtn.addEventListener("click", function () {
@@ -217,7 +322,8 @@
     }
     gh = { pat: pat, owner: owner, repo: repo, name: gh && gh.name };
     saveGhConfig();
-    azure = { clientId: clientId };
+    azure = azure || {};
+    azure.clientId = clientId;
     saveAzureConfig();
     closeSettings();
     setStatus("Settings saved.", "ok");
@@ -249,6 +355,17 @@
 
   function encodeURIComponentPath(path) {
     return path.split("/").map(encodeURIComponent).join("/");
+  }
+
+  // Mirrors the note-field behavior documented for PaperNote's own capture
+  // flow: an override replaces the name portion only, the original file's
+  // extension is kept so filing never produces an extensionless file.
+  function applyOverrideName(originalFilename, overrideText) {
+    if (!overrideText) return originalFilename;
+    var dot = originalFilename.lastIndexOf(".");
+    var ext = dot > -1 ? originalFilename.slice(dot) : "";
+    var sanitized = overrideText.replace(/[\\/:*?"<>|]/g, "-");
+    return sanitized + ext;
   }
 
   // ---------- GitHub: read inbox, remove entries ----------
@@ -384,6 +501,17 @@
     return msalInitPromise;
   }
 
+  function updateConnectRow() {
+    if (msalAccount) {
+      el.odStatus.textContent = "Connected as " + msalAccount.username;
+      el.connectBtn.textContent = "Switch";
+    } else {
+      el.odStatus.textContent = "Not connected";
+      el.connectBtn.textContent = "Connect";
+    }
+    el.gearDot.hidden = !!msalAccount;
+  }
+
   function onConnected(account) {
     msalAccount = account;
     // Remember which of possibly several signed-in Microsoft accounts this
@@ -392,10 +520,7 @@
     // first (that's the bug that originally connected the wrong account).
     azure.accountUsername = account.username;
     saveAzureConfig();
-    el.connectBtn.hidden = true;
-    el.connectedLabel.hidden = false;
-    el.connectedLabel.textContent = "Connected (" + account.username + ")";
-    el.tagSelect.disabled = false;
+    updateConnectRow();
     listTags().then(renderTagOptions).catch(function (err) {
       setStatus("Couldn't list OneDrive tags — " + err.message, "err");
     });
@@ -418,7 +543,7 @@
 
   el.connectBtn.addEventListener("click", function () {
     initMsal().then(function (app) {
-      if (!app) { setStatus("Set an Azure Client ID in Settings first.", "err"); openSettings(); return; }
+      if (!app) { setStatus("Set an Azure Client ID above first.", "err"); return; }
       return app.loginPopup({ scopes: GRAPH_SCOPES, prompt: "select_account" }).then(function (result) {
         onConnected(result.account);
       });
@@ -429,7 +554,7 @@
 
   function getGraphToken() {
     return initMsal().then(function (app) {
-      if (!app || !msalAccount) return Promise.reject(new Error("Not connected to OneDrive."));
+      if (!app || !msalAccount) return Promise.reject(new Error("Not connected to OneDrive — open Settings to connect."));
       return app.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: msalAccount })
         .then(function (r) { return r.accessToken; })
         .catch(function () {
@@ -468,17 +593,6 @@
           .map(function (c) { return { id: c.id, name: c.name }; })
           .sort(function (a, b) { return a.name.localeCompare(b.name); });
       });
-    });
-  }
-
-  function renderTagOptions(list) {
-    tags = list;
-    el.tagSelect.innerHTML = '<option value="">Tag&#8230;</option>';
-    tags.forEach(function (t) {
-      var opt = document.createElement("option");
-      opt.value = t.id;
-      opt.textContent = t.name;
-      el.tagSelect.appendChild(opt);
     });
   }
 
@@ -544,21 +658,178 @@
     return uploadFrom(0);
   }
 
+  // ---------- filing (used by both the batch button and a row's Retry) ----------
+
+  function bytesForEntry(entry, branch) {
+    if (entry.type === "text") return Promise.resolve(textToArrayBuffer(entry.textContent));
+    // Photo thumbnails already pulled the full blob for display — reuse
+    // those bytes at filing time instead of fetching the same blob twice.
+    if (entry.type === "photo" && thumbCache[entry.id]) {
+      return Promise.resolve(base64ToArrayBuffer(thumbCache[entry.id].split(",")[1]));
+    }
+    return fetchBlobBase64(entry.blobPath, branch).then(base64ToArrayBuffer);
+  }
+
+  function fileRow(entry, tagId, token, branch, overrideText) {
+    return ensureNotesFolder(tagId, token).then(function (notesFolderId) {
+      var filename = applyOverrideName(entry.filename, overrideText);
+      return bytesForEntry(entry, branch).then(function (bytes) {
+        return uploadToNotesFolder(notesFolderId, filename, bytes, token);
+      });
+    });
+  }
+
+  function entryById(id) {
+    return entries.filter(function (e) { return e.id === id; })[0];
+  }
+
   // ---------- list rendering ----------
 
   function fetchInbox() {
     if (!gh || !gh.pat) { openSettings(); return Promise.resolve(); }
     setStatus("Loading inbox…");
     return getDefaultBranch()
-      .then(function (branch) { return getInboxData(branch); })
+      .then(function (branch) {
+        lastBranch = branch;
+        return getInboxData(branch);
+      })
       .then(function (data) {
         entries = data.entries || [];
         renderList();
-        setStatus(entries.length ? "" : "Inbox is empty.");
+        setStatus("");
       })
       .catch(function (err) {
         setStatus("Couldn't load inbox — " + err.message, "err");
       });
+  }
+
+  function updateSubheading() {
+    var count = entries.length;
+    var text = count === 0 ? "Nothing waiting to be filed" : count + (count === 1 ? " note waiting to be filed" : " notes waiting to be filed");
+    el.subheading.textContent = text;
+    el.subheading.appendChild(el.refreshBtn);
+  }
+
+  function populateTagSelect(select) {
+    var current = select.value;
+    select.innerHTML = "";
+    var placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Tag…";
+    select.appendChild(placeholder);
+    tags.forEach(function (t) {
+      var opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.name;
+      select.appendChild(opt);
+    });
+    select.disabled = tags.length === 0;
+    if (current && tags.some(function (t) { return t.id === current; })) select.value = current;
+    select.classList.toggle("placeholder", !select.value);
+  }
+
+  function renderTagOptions(list) {
+    tags = list;
+    Array.prototype.forEach.call(el.list.querySelectorAll(".tagSelect"), populateTagSelect);
+  }
+
+  function buildThumb(entry) {
+    var thumb = document.createElement("div");
+    if (entry.type === "text") {
+      thumb.className = "thumb textPrev";
+      var p = document.createElement("p");
+      p.textContent = entry.textContent || "";
+      thumb.appendChild(p);
+    } else if (entry.type === "photo") {
+      thumb.className = "thumb";
+      if (thumbCache[entry.id]) {
+        var img = document.createElement("img");
+        img.src = thumbCache[entry.id];
+        thumb.appendChild(img);
+      } else {
+        thumb.innerHTML = PHOTO_ICON;
+        loadPhotoThumb(entry, thumb);
+      }
+    } else {
+      thumb.className = "thumb";
+      thumb.innerHTML = DOC_ICON;
+    }
+    return thumb;
+  }
+
+  function loadPhotoThumb(entry, thumbEl) {
+    if (!lastBranch || !entry.blobPath) return;
+    fetchBlobBase64(entry.blobPath, lastBranch).then(function (b64) {
+      var dataUri = "data:" + (entry.mimeType || "image/jpeg") + ";base64," + b64;
+      thumbCache[entry.id] = dataUri;
+      // The row may have re-rendered (or the entry may be gone) by the time
+      // this resolves — only touch the DOM if this exact thumb is still there.
+      if (document.body.contains(thumbEl)) {
+        thumbEl.innerHTML = "";
+        var img = document.createElement("img");
+        img.src = dataUri;
+        thumbEl.appendChild(img);
+      }
+    }).catch(function () { /* leave the generic icon in place */ });
+  }
+
+  function buildRow(entry) {
+    var rowGroup = document.createElement("div");
+    rowGroup.className = "rowGroup";
+    rowGroup.dataset.id = entry.id;
+
+    rowGroup.appendChild(buildThumb(entry));
+
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var inherited = document.createElement("div");
+    inherited.className = "inheritedName";
+    inherited.textContent = entry.filename;
+
+    var newNameInput = document.createElement("input");
+    newNameInput.type = "text";
+    newNameInput.className = "newNameInput";
+    newNameInput.placeholder = "New note name (optional)...";
+
+    var tagSelect = document.createElement("select");
+    tagSelect.className = "tagSelect";
+    populateTagSelect(tagSelect);
+    tagSelect.addEventListener("change", function () {
+      tagSelect.classList.toggle("placeholder", !tagSelect.value);
+    });
+
+    card.appendChild(inherited);
+    card.appendChild(newNameInput);
+    card.appendChild(tagSelect);
+    rowGroup.appendChild(card);
+
+    var trashBtn = document.createElement("button");
+    trashBtn.className = "trashBtn";
+    trashBtn.type = "button";
+    trashBtn.title = "Discard";
+    trashBtn.innerHTML = TRASH_ICON;
+    trashBtn.addEventListener("click", function () { discardOne(entry.id); });
+    rowGroup.appendChild(trashBtn);
+
+    if (lastErrors[entry.id]) {
+      var errorBar = document.createElement("div");
+      errorBar.className = "errorBar";
+      var span = document.createElement("span");
+      span.textContent = "Filing failed — " + lastErrors[entry.id];
+      var retry = document.createElement("a");
+      retry.href = "#";
+      retry.textContent = "Retry";
+      retry.addEventListener("click", function (e) {
+        e.preventDefault();
+        retryRow(entry.id, tagSelect, newNameInput);
+      });
+      errorBar.appendChild(span);
+      errorBar.appendChild(retry);
+      rowGroup.appendChild(errorBar);
+    }
+
+    return rowGroup;
   }
 
   function renderList() {
@@ -568,146 +839,109 @@
       empty.id = "emptyState";
       empty.textContent = "Nothing waiting to be filed.";
       el.list.appendChild(empty);
-      updateToolbarState();
-      return;
+    } else {
+      entries.forEach(function (entry) { el.list.appendChild(buildRow(entry)); });
     }
-    entries.forEach(function (entry) {
-      var row = document.createElement("div");
-      row.className = "row";
-      row.dataset.id = entry.id;
-
-      var check = document.createElement("input");
-      check.type = "checkbox";
-      check.className = "rowCheck";
-      check.addEventListener("change", updateToolbarState);
-
-      var filenameInput = document.createElement("input");
-      filenameInput.type = "text";
-      filenameInput.className = "rowFilename";
-      filenameInput.value = entry.filename;
-
-      var meta = document.createElement("div");
-      meta.className = "rowMeta";
-      var when = "";
-      try { when = new Date(entry.capturedAt).toLocaleString(); } catch (e) { when = entry.capturedAt; }
-      var who = entry.capturedBy ? (entry.capturedBy + " · ") : "";
-      meta.textContent = entry.type + " · " + who + when;
-
-      row.appendChild(check);
-      row.appendChild(filenameInput);
-      row.appendChild(meta);
-      el.list.appendChild(row);
-    });
-    updateToolbarState();
+    updateSubheading();
   }
 
-  function selectedRows() {
-    return Array.prototype.slice.call(el.list.querySelectorAll(".row")).filter(function (row) {
-      return row.querySelector(".rowCheck").checked;
-    });
-  }
-
-  function updateToolbarState() {
-    var selected = selectedRows();
-    el.discardBtn.disabled = selected.length === 0;
-    el.fileBtn.disabled = selected.length === 0 || !el.tagSelect.value || el.tagSelect.disabled;
-  }
-
-  el.selectAllCheck.addEventListener("change", function () {
-    var checked = el.selectAllCheck.checked;
-    Array.prototype.forEach.call(el.list.querySelectorAll(".rowCheck"), function (c) { c.checked = checked; });
-    updateToolbarState();
-  });
-
-  el.tagSelect.addEventListener("change", updateToolbarState);
   el.refreshBtn.addEventListener("click", fetchInbox);
 
   // ---------- actions ----------
 
-  function entryById(id) {
-    return entries.filter(function (e) { return e.id === id; })[0];
-  }
-
-  function currentFilenameForRow(row) {
-    return row.querySelector(".rowFilename").value.trim();
-  }
-
-  el.discardBtn.addEventListener("click", function () {
-    var rows = selectedRows();
-    if (!rows.length) return;
-    var ids = rows.map(function (r) { return r.dataset.id; });
-    el.discardBtn.disabled = true;
+  function discardOne(id) {
     setStatus("Discarding…");
-    attemptRemoval(ids, 1)
+    attemptRemoval([id], 1)
       .then(function () {
-        setStatus("Discarded " + ids.length + ".", "ok");
+        delete lastErrors[id];
+        delete thumbCache[id];
         return fetchInbox();
       })
-      .catch(function (err) {
-        setStatus("Couldn't discard — " + err.message, "err");
+      .then(function () { setStatus("Discarded.", "ok"); })
+      .catch(function (err) { setStatus("Couldn't discard — " + err.message, "err"); });
+  }
+
+  function retryRow(id, tagSelect, newNameInput) {
+    var entry = entryById(id);
+    var tagId = tagSelect.value;
+    if (!entry || !tagId) { setStatus("Pick a tag before retrying.", "err"); return; }
+    setStatus("Retrying…");
+    var token, branch;
+    getGraphToken()
+      .then(function (t) { token = t; return getDefaultBranch(); })
+      .then(function (b) { branch = b; return fileRow(entry, tagId, token, branch, newNameInput.value.trim()); })
+      .then(function () {
+        delete lastErrors[id];
+        return attemptRemoval([id], 1);
       })
-      .finally(function () { updateToolbarState(); });
-  });
+      .then(function () { return fetchInbox(); })
+      .then(function () { setStatus("Filed.", "ok"); })
+      .catch(function (err) {
+        lastErrors[id] = err.message;
+        renderList();
+        setStatus("Retry failed — " + err.message, "err");
+      });
+  }
 
   el.fileBtn.addEventListener("click", function () {
-    var rows = selectedRows();
-    var tagId = el.tagSelect.value;
-    if (!rows.length || !tagId) return;
+    var rowEls = Array.prototype.slice.call(el.list.querySelectorAll(".rowGroup"));
+    var targets = rowEls.map(function (row) {
+      var tagSelect = row.querySelector(".tagSelect");
+      var tagId = tagSelect ? tagSelect.value : "";
+      if (!tagId) return null;
+      var newNameInput = row.querySelector(".newNameInput");
+      return { id: row.dataset.id, tagId: tagId, override: newNameInput.value.trim() };
+    }).filter(Boolean);
+
+    if (!targets.length) {
+      setStatus("No rows have a tag picked yet — pick a tag on at least one row first.", "err");
+      return;
+    }
 
     el.fileBtn.disabled = true;
-    el.discardBtn.disabled = true;
-    setStatus("Filing 0/" + rows.length + "…");
+    setStatus("Filing 0/" + targets.length + "…");
 
-    var branch, token;
-    var filed = [];
-    var failed = [];
+    var token, branch;
+    var filedIds = [];
+    var failCount = 0;
 
     getGraphToken()
-      .then(function (t) {
-        token = t;
-        return getDefaultBranch();
-      })
+      .then(function (t) { token = t; return getDefaultBranch(); })
       .then(function (b) {
         branch = b;
-        return ensureNotesFolder(tagId, token);
-      })
-      .then(function (notesFolderId) {
-        return rows.reduce(function (chain, row, i) {
+        return targets.reduce(function (chain, target, i) {
           return chain.then(function () {
-            var id = row.dataset.id;
-            var entry = entryById(id);
-            var filename = currentFilenameForRow(row) || entry.filename;
-            var bytesPromise = entry.type === "text"
-              ? Promise.resolve(textToArrayBuffer(entry.textContent))
-              : fetchBlobBase64(entry.blobPath, branch).then(base64ToArrayBuffer);
-            return bytesPromise
-              .then(function (bytes) { return uploadToNotesFolder(notesFolderId, filename, bytes, token); })
-              .then(function () { filed.push(id); })
-              .catch(function (err) { failed.push({ id: id, filename: filename, error: err.message }); })
-              .then(function () { setStatus("Filing " + (i + 1) + "/" + rows.length + "…"); });
+            var entry = entryById(target.id);
+            if (!entry) return;
+            return fileRow(entry, target.tagId, token, branch, target.override)
+              .then(function () {
+                filedIds.push(target.id);
+                delete lastErrors[target.id];
+              })
+              .catch(function (err) {
+                lastErrors[target.id] = err.message;
+                failCount++;
+              })
+              .then(function () { setStatus("Filing " + (i + 1) + "/" + targets.length + "…"); });
           });
         }, Promise.resolve());
       })
       .then(function () {
-        if (!filed.length) return;
-        return attemptRemoval(filed, 1);
+        if (!filedIds.length) return;
+        return attemptRemoval(filedIds, 1);
       })
+      .then(function () { return fetchInbox(); })
       .then(function () {
-        return fetchInbox();
-      })
-      .then(function () {
-        var tagName = (tags.filter(function (t) { return t.id === tagId; })[0] || {}).name || "tag";
-        if (failed.length) {
-          console.error("PaperFile: failed to file", failed);
-          setStatus("Filed " + filed.length + " to " + tagName + " — " + failed.length + " failed, see console.", "err");
+        if (failCount) {
+          setStatus("Filed " + filedIds.length + " — " + failCount + " failed, see the error on each row.", "err");
         } else {
-          setStatus("Filed " + filed.length + " to " + tagName + ".", "ok");
+          setStatus("Filed " + filedIds.length + ".", "ok");
         }
       })
       .catch(function (err) {
         setStatus("Filing failed — " + err.message, "err");
       })
-      .finally(function () { updateToolbarState(); });
+      .finally(function () { el.fileBtn.disabled = false; });
   });
 
   loadConfig();
@@ -716,6 +950,7 @@
   } else {
     fetchInbox();
     tryRestoreAccount();
+    updateConnectRow();
   }
 })();
 </script>
