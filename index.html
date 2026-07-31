@@ -341,11 +341,9 @@
   el.textInput.addEventListener("input", updateSendEnabled);
 
   el.filePick.addEventListener("click", function () { el.fileInput.click(); });
-  el.fileInput.addEventListener("change", function () {
-    var file = el.fileInput.files[0];
-    if (!file) return;
+  function adoptPickedFile(file) {
     pickedFile = file;
-    el.fileFilename.textContent = file.name;
+    el.fileFilename.textContent = file.name || "pasted file";
     el.fileHint.hidden = true;
     if (file.type && file.type.indexOf("image/") === 0) {
       var url = URL.createObjectURL(file);
@@ -355,6 +353,31 @@
       el.fileThumb.hidden = true;
     }
     updateSendEnabled();
+  }
+
+  el.fileInput.addEventListener("change", function () {
+    var file = el.fileInput.files[0];
+    if (!file) return;
+    adoptPickedFile(file);
+  });
+
+  // Lets a photo/document be pasted (Ctrl+V, or iOS's long-press Paste menu)
+  // straight into the File tab instead of requiring the file picker. Only
+  // intercepts when the clipboard actually holds a file — plain-text paste
+  // into the textarea or any input is left completely alone.
+  document.addEventListener("paste", function (e) {
+    if (!el.settings.hidden) return;
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    var fileItem = null;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === "file") { fileItem = items[i]; break; }
+    }
+    if (!fileItem) return;
+    var file = fileItem.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    setMode("file");
+    adoptPickedFile(file);
   });
 
   function resetCapture() {
