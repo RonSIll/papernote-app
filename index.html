@@ -277,7 +277,10 @@
 
   function guessTextFilename(text) {
     var lines = text.split("\n").map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
-    var name = sanitizeFilename(lines[0] || "note").replace(/\.+$/, "");
+    var firstLine = lines[0] || "note";
+    var words = firstLine.split(/\s+/).filter(function (w) { return w.length > 0; });
+    var truncated = words.slice(0, 7).join(" ");
+    var name = sanitizeFilename(truncated).replace(/\.+$/, "");
     if (!/\.[a-zA-Z0-9]{1,8}$/.test(name)) name += ".txt";
     return name;
   }
