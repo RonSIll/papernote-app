@@ -30,6 +30,25 @@
     height: 100%;
     overscroll-behavior: none;
   }
+  /* iOS has no real orientation-lock API (Screen Orientation's lock() isn't
+     implemented in Safari, and the manifest's orientation:"portrait" is
+     ignored by iOS home-screen web apps) — this counter-rotates the whole
+     page back to portrait whenever the device reports landscape, which is
+     the only approach that actually works there. Scoped to touch-primary
+     devices (hover:none/pointer:coarse) so a resized PC browser window,
+     which also matches "orientation: landscape", is never affected. */
+  @media screen and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+    html {
+      transform: rotate(-90deg);
+      transform-origin: left top;
+      width: 100vh;
+      height: 100vw;
+      overflow: hidden;
+      position: absolute;
+      top: 100%;
+      left: 0;
+    }
+  }
   body {
     margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column;
     background: var(--bg); color: var(--text);
