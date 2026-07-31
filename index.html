@@ -452,7 +452,11 @@
         setStatus("Pasted from clipboard.", "ok");
       });
     }).catch(function (err) {
-      setStatus("Couldn't paste — " + err.message, "err");
+      if (err.name === "NotAllowedError") {
+        setStatus("Nothing to paste — copy an image first, then try again.", "err");
+      } else {
+        setStatus("Couldn't paste — " + err.message, "err");
+      }
     });
   });
 
