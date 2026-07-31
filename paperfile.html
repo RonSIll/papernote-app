@@ -198,19 +198,19 @@
   </div>
   <div class="row2">
     <label for="patInput">GitHub token (fine-grained PAT, Contents: Read and write, scoped to papernote-data)</label>
-    <input id="patInput" type="password" placeholder="ghp_...">
+    <input id="patInput" type="password" placeholder="ghp_..." autocomplete="new-password">
   </div>
   <div class="row2">
     <label for="ownerInput">Owner</label>
-    <input id="ownerInput" type="text">
+    <input id="ownerInput" type="text" autocomplete="off">
   </div>
   <div class="row2">
     <label for="repoInput">Repo</label>
-    <input id="repoInput" type="text">
+    <input id="repoInput" type="text" autocomplete="off">
   </div>
   <div class="row2">
     <label for="azureClientIdInput">Azure app Client ID (PaperFile's own registration — write scope)</label>
-    <input id="azureClientIdInput" type="text" placeholder="00000000-0000-0000-0000-000000000000">
+    <input id="azureClientIdInput" type="text" placeholder="00000000-0000-0000-0000-000000000000" autocomplete="off">
   </div>
   <button id="saveSettingsBtn">Save</button>
 </div>
@@ -817,6 +817,11 @@
     newNameInput.type = "text";
     newNameInput.className = "newNameInput";
     newNameInput.placeholder = "New note name (optional)...";
+    // Chrome will offer to autofill saved passwords into a plain text field
+    // if it considers it part of the same page/form context as a password
+    // field — which patInput (the GitHub token, in the settings panel) is,
+    // even while hidden. autocomplete="off" opts this field out of that.
+    newNameInput.autocomplete = "off";
 
     var tagSelect = document.createElement("select");
     tagSelect.className = "tagSelect";
