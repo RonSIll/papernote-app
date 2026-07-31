@@ -294,8 +294,18 @@
   }
 
   function fetchBlobBase64(blobPath, branch) {
+    // The Contents API only inlines base64 content for files under ~1MB —
+    // above that it silently returns an empty content field (sha and size
+    // are still correct), so always resolve through the Git Blobs API
+    // instead, which has no such cap. Same reasoning as why PaperNote's
+    // own send flow writes via the Git Data API rather than Contents PUT.
     return ghJson(apiBase() + "/contents/" + blobPath + "?ref=" + branch, { headers: ghHeaders() })
-      .then(function (json) { return json.content.replace(/\n/g, ""); });
+      .then(function (json) {
+        return ghJson(apiBase() + "/git/blobs/" + json.sha, { headers: ghHeaders() });
+      })
+      .then(function (blobJson) {
+        return blobJson.content.replace(/\n/g, "");
+      });
   }
 
   function attemptRemoval(idsToRemove, attempt) {
