@@ -25,15 +25,18 @@
     background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  .page { max-width: 980px; margin: 0 auto; padding: 40px 32px 140px; }
+  .page { position: relative; max-width: 980px; margin: 0 auto; padding: 76px 32px 140px; }
   .page[hidden] { display: none; }
 
-  .topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; gap: 20px; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px;
+    gap: 20px; padding-right: 50px; /* 16px row gap + 34px trash column — keeps fileBtn flush with the cards' own right edge, not the trash icons' */
+  }
   .topbar h1 { font-size: 19px; font-weight: 600; margin: 0 0 3px; letter-spacing: -0.01em; }
   .topbar .sub { font-size: 13px; color: var(--text2); margin: 0; }
   .topbar .sub button {
     background: none; border: none; color: var(--accent); font-size: 13px; font-family: inherit;
-    cursor: pointer; padding: 0; margin-left: 8px; text-decoration: underline;
+    cursor: pointer; padding: 0; text-decoration: underline;
   }
   .fileAction { text-align: right; flex: 0 0 auto; }
   .fileBtn {
@@ -42,7 +45,6 @@
     font-family: inherit;
   }
   .fileBtn:disabled { opacity: 0.5; cursor: default; }
-  .fileAction .note { font-size: 11.5px; color: var(--text2); margin: 7px 0 0; max-width: 240px; line-height: 1.4; }
 
   .colHeads {
     display: grid; grid-template-columns: 96px minmax(150px,1fr) minmax(170px,1fr) minmax(150px,170px) 34px;
@@ -93,11 +95,11 @@
   select:disabled { opacity: 0.6; cursor: default; }
 
   .trashBtn {
-    width: 34px; height: 34px; border: 1px solid var(--border); background: var(--bg2);
+    width: 34px; height: 34px; border: none; background: none;
     color: var(--text2); display: flex; align-items: center; justify-content: center; cursor: pointer;
     flex-shrink: 0;
   }
-  .trashBtn:hover { border-color: var(--red); color: var(--red); }
+  .trashBtn:hover { color: var(--red); }
   .trashBtn svg { width: 15px; height: 15px; }
 
   .errorBar {
@@ -115,8 +117,8 @@
   #status.err { color: var(--red); }
 
   .gear {
-    position: fixed; left: 24px; bottom: 24px; width: 42px; height: 42px;
-    background: var(--bg2); border: 1px solid var(--border); display: flex;
+    position: absolute; top: 20px; right: 32px; width: 42px; height: 42px;
+    background: none; border: none; display: flex;
     align-items: center; justify-content: center; cursor: pointer;
   }
   .gear svg { width: 19px; height: 19px; color: var(--text2); }
@@ -167,11 +169,10 @@
   <div class="topbar">
     <div>
       <h1>PaperFile</h1>
-      <p class="sub" id="subheading">Loading…<button id="refreshBtn" type="button">Refresh</button></p>
+      <p class="sub" id="subheading"><button id="refreshBtn" type="button">Refresh</button></p>
     </div>
     <div class="fileAction">
       <button class="fileBtn" id="fileBtn">File tagged notes</button>
-      <p class="note">Files any row with a tag already picked. Rows still showing "Tag…" are left in the inbox.</p>
     </div>
   </div>
 
@@ -730,9 +731,7 @@
   }
 
   function updateSubheading() {
-    var count = entries.length;
-    var text = count === 0 ? "Nothing waiting to be filed" : count + (count === 1 ? " note waiting to be filed" : " notes waiting to be filed");
-    el.subheading.textContent = text;
+    el.subheading.textContent = "";
     el.subheading.appendChild(el.refreshBtn);
   }
 
