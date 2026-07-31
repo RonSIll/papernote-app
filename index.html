@@ -281,7 +281,7 @@
     var words = firstLine.split(/\s+/).filter(function (w) { return w.length > 0; });
     var truncated = words.slice(0, 7).join(" ");
     var name = sanitizeFilename(truncated).replace(/\.+$/, "");
-    if (!/\.[a-zA-Z0-9]{1,8}$/.test(name)) name += ".txt";
+    if (!/\.[a-zA-Z0-9]{1,8}$/.test(name)) name += ".md";
     return name;
   }
 
