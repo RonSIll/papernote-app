@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>PaperNote</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PaperNote">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiUGFwZXJOb3RlIiwic2hvcnRfbmFtZSI6IlBhcGVyTm90ZSIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYiLCJ0aGVtZV9jb2xvciI6IiM0ZjZiZmYiLCJzdGFydF91cmwiOiIuIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCJ9">
+<style>
+  :root {
+    --bg: #ffffff; --bg2: #f4f4f6; --text: #1c1c1e; --text2: #6b6b70;
+    --text3: #a0a0a5; --border: #e3e3e6; --accent: #4f6bff; --red: #ff3b30;
+    --green: #16794f; --active: #84cc16; --active-on: #1c1c1e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --bg2: #1c1c1e; --text: #f5f5f7; --text2: #98989d;
+      --text3: #6b6b70; --border: #2c2c2e; --accent: #7b8fff; --red: #ff453a;
+      --green: #4ade9e; --active: #a6e22e; --active-on: #1c1c1e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; height: 100vh; display: flex; flex-direction: column;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 0.5px solid var(--border); flex: 0 0 auto;
+  }
+  header h1 { font-size: 15px; font-weight: 600; margin: 0; }
+  #gearBtn {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    padding: 4px; line-height: 1; display: flex; align-items: center;
+  }
+  main { flex: 1; display: flex; flex-direction: column; padding: 12px 14px; gap: 10px; min-height: 0; }
+  main[hidden] { display: none; }
+  #modeTabs { display: flex; gap: 0; border: 1px solid var(--border); flex: 0 0 auto; }
+  #modeTabs button {
+    flex: 1; min-width: 0; background: var(--bg2); color: var(--text2); border: none;
+    padding: 9px 4px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border-right: 0.5px solid var(--border);
+  }
+  #modeTabs button:last-child { border-right: none; }
+  #modeTabs button.on { background: var(--active); color: var(--active-on); }
+  #panels { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .panel { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .panel[hidden] { display: none; }
+  textarea {
+    flex: 1; width: 100%; resize: none; border: 1px solid var(--border);
+    border-radius: 0; padding: 10px 12px; font-size: 20px; line-height: 1.4;
+    background: var(--bg2); color: var(--text); font-family: inherit;
+  }
+  textarea:focus { outline: none; }
+  .pickArea {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; border: 1px dashed var(--border); background: var(--bg2); cursor: pointer;
+    padding: 20px; text-align: center;
+  }
+  .pickArea .hint { font-size: 14px; color: var(--text2); }
+  .pickArea .filename { font-size: 14px; color: var(--text); word-break: break-all; padding: 0 10px; }
+  .pickArea img.thumb { max-width: 100%; max-height: 55vh; object-fit: contain; }
+  .pickArea svg { color: var(--text3); }
+  input[type="file"] { display: none; }
+  #addBtn {
+    background: var(--active); color: var(--active-on); border: none; border-radius: 0;
+    padding: 11px; font-size: 15px; font-weight: 500; cursor: pointer; flex: 0 0 auto;
+  }
+  #addBtn:disabled { opacity: 0.5; cursor: default; }
+  #status { font-size: 13px; min-height: 16px; flex: 0 0 auto; }
+  #status.ok { color: var(--green); }
+  #status.err { color: var(--red); }
+  #settings { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  #settings[hidden] { display: none; }
+  #settings label { font-size: 12px; color: var(--text2); }
+  #settings input {
+    width: 100%; border: 1px solid var(--border); border-radius: 0;
+    padding: 8px 10px; font-size: 14px; background: var(--bg2); color: var(--text);
+    font-family: inherit;
+  }
+  #settings .row { display: flex; flex-direction: column; gap: 3px; }
+  #saveSettingsBtn {
+    background: var(--accent); border: none; color: white;
+    border-radius: 0; padding: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>PaperNote</h1>
+  <button id="gearBtn" title="Settings">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+</header>
+<main id="main">
+  <div id="modeTabs">
+    <button id="tabText" class="on" data-mode="text">Text</button>
+    <button id="tabPhoto" data-mode="photo">Photo</button>
+    <button id="tabDocument" data-mode="document">Document</button>
+  </div>
+  <div id="panels">
+    <div class="panel" id="panelText">
+      <textarea id="textInput" placeholder="Note&#8230;"></textarea>
+    </div>
+    <div class="panel" id="panelPhoto" hidden>
+      <div class="pickArea" id="photoPick">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M8 5l1.5-2h5L16 5"/></svg>
+        <div class="hint" id="photoHint">Tap to take or choose a photo</div>
+        <img class="thumb" id="photoThumb" hidden>
+        <div class="filename" id="photoFilename"></div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*">
+    </div>
+    <div class="panel" id="panelDocument" hidden>
+      <div class="pickArea" id="documentPick">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="hint" id="documentHint">Tap to choose a document</div>
+        <div class="filename" id="documentFilename"></div>
+      </div>
+      <input type="file" id="documentInput">
+    </div>
+  </div>
+  <button id="addBtn" disabled>Send</button>
+  <div id="status"></div>
+</main>
+<div id="settings" hidden>
+  <div class="row">
+    <label for="patInput">GitHub token (fine-grained PAT, Contents: Read and write)</label>
+    <input id="patInput" type="password" placeholder="ghp_...">
+  </div>
+  <div class="row">
+    <label for="ownerInput">Owner</label>
+    <input id="ownerInput" type="text">
+  </div>
+  <div class="row">
+    <label for="repoInput">Repo</label>
+    <input id="repoInput" type="text">
+  </div>
+  <div class="row">
+    <label for="nameInput">Your name (optional, shown on your captures)</label>
+    <input id="nameInput" type="text" placeholder="Ron or Kelly">
+  </div>
+  <button id="saveSettingsBtn">Save</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var CONFIG_KEY = "paperNoteGithubConfig";
+  var INBOX_PATH = "inbox.json";
+  var DEFAULT_OWNER = "RonSIll";
+  var DEFAULT_REPO = "papernote-data";
+  var MAX_COMMIT_ATTEMPTS = 3;
+
+  var el = {
+    main: document.getElementById("main"),
+    gearBtn: document.getElementById("gearBtn"),
+    settings: document.getElementById("settings"),
+    patInput: document.getElementById("patInput"),
+    ownerInput: document.getElementById("ownerInput"),
+    repoInput: document.getElementById("repoInput"),
+    nameInput: document.getElementById("nameInput"),
+    saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+    modeTabs: document.getElementById("modeTabs"),
+    panelText: document.getElementById("panelText"),
+    panelPhoto: document.getElementById("panelPhoto"),
+    panelDocument: document.getElementById("panelDocument"),
+    textInput: document.getElementById("textInput"),
+    photoPick: document.getElementById("photoPick"),
+    photoInput: document.getElementById("photoInput"),
+    photoThumb: document.getElementById("photoThumb"),
+    photoHint: document.getElementById("photoHint"),
+    photoFilename: document.getElementById("photoFilename"),
+    documentPick: document.getElementById("documentPick"),
+    documentInput: document.getElementById("documentInput"),
+    documentHint: document.getElementById("documentHint"),
+    documentFilename: document.getElementById("documentFilename"),
+    addBtn: document.getElementById("addBtn"),
+    status: document.getElementById("status")
+  };
+
+  var gh = null;
+  var mode = "text";
+  var pickedFile = null; // File object for photo/document modes
+
+  // ---------- config ----------
+
+  function loadConfig() {
+    try {
+      var raw = localStorage.getItem(CONFIG_KEY);
+      gh = raw ? JSON.parse(raw) : null;
+    } catch (e) { gh = null; }
+  }
+
+  function saveConfig() {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(gh));
+  }
+
+  function openSettings() {
+    el.patInput.value = gh && gh.pat ? gh.pat : "";
+    el.ownerInput.value = (gh && gh.owner) || DEFAULT_OWNER;
+    el.repoInput.value = (gh && gh.repo) || DEFAULT_REPO;
+    el.nameInput.value = (gh && gh.name) || "";
+    el.settings.hidden = false;
+    el.main.hidden = true;
+  }
+  function closeSettings() {
+    el.settings.hidden = true;
+    el.main.hidden = false;
+  }
+
+  el.gearBtn.addEventListener("click", function () {
+    if (el.settings.hidden) { openSettings(); } else { closeSettings(); }
+  });
+
+  el.saveSettingsBtn.addEventListener("click", function () {
+    var pat = el.patInput.value.trim();
+    var owner = el.ownerInput.value.trim() || DEFAULT_OWNER;
+    var repo = el.repoInput.value.trim() || DEFAULT_REPO;
+    var name = el.nameInput.value.trim();
+    if (!pat) {
+      setStatus("Token is required.", "err");
+      return;
+    }
+    gh = { pat: pat, owner: owner, repo: repo, name: name };
+    saveConfig();
+    closeSettings();
+    setStatus("Settings saved.", "ok");
+  });
+
+  // ---------- helpers ----------
+
+  function uid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "n-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+  }
+
+  function b64decode(str) {
+    return decodeURIComponent(escape(atob(str)));
+  }
+
+  function sanitizeFilename(name) {
+    var cleaned = String(name || "").replace(/[\\/:*?"<>|\x00-\x1f]/g, "").trim();
+    if (cleaned.length > 120) cleaned = cleaned.slice(0, 120);
+    return cleaned || "untitled";
+  }
+
+  function guessTextFilename(text) {
+    var lines = text.split("\n").map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+    var name = sanitizeFilename(lines[0] || "note");
+    if (!/\.[a-zA-Z0-9]{1,8}$/.test(name)) name += ".txt";
+    return name;
+  }
+
+  function setStatus(msg, cls) {
+    el.status.textContent = msg;
+    el.status.className = cls || "";
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var dataUrl = reader.result;
+        resolve(dataUrl.slice(dataUrl.indexOf(",") + 1));
+      };
+      reader.onerror = function () { reject(new Error("Could not read file.")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- mode switching ----------
+
+  function setMode(next) {
+    mode = next;
+    var buttons = el.modeTabs.querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].classList.toggle("on", buttons[i].dataset.mode === next);
+    }
+    el.panelText.hidden = next !== "text";
+    el.panelPhoto.hidden = next !== "photo";
+    el.panelDocument.hidden = next !== "document";
+    updateSendEnabled();
+  }
+
+  el.modeTabs.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-mode]");
+    if (!btn) return;
+    setMode(btn.dataset.mode);
+  });
+
+  function updateSendEnabled() {
+    var ready = false;
+    if (mode === "text") ready = el.textInput.value.trim().length > 0;
+    else ready = !!pickedFile;
+    el.addBtn.disabled = !ready;
+  }
+
+  el.textInput.addEventListener("input", updateSendEnabled);
+
+  el.photoPick.addEventListener("click", function () { el.photoInput.click(); });
+  el.photoInput.addEventListener("change", function () {
+    var file = el.photoInput.files[0];
+    if (!file) return;
+    pickedFile = file;
+    el.photoFilename.textContent = file.name;
+    el.photoHint.hidden = true;
+    var url = URL.createObjectURL(file);
+    el.photoThumb.src = url;
+    el.photoThumb.hidden = false;
+    updateSendEnabled();
+  });
+
+  el.documentPick.addEventListener("click", function () { el.documentInput.click(); });
+  el.documentInput.addEventListener("change", function () {
+    var file = el.documentInput.files[0];
+    if (!file) return;
+    pickedFile = file;
+    el.documentFilename.textContent = file.name;
+    el.documentHint.hidden = true;
+    updateSendEnabled();
+  });
+
+  function resetCapture() {
+    el.textInput.value = "";
+    pickedFile = null;
+    el.photoInput.value = "";
+    el.documentInput.value = "";
+    el.photoFilename.textContent = "";
+    el.photoThumb.hidden = true;
+    el.photoHint.hidden = false;
+    el.documentFilename.textContent = "";
+    el.documentHint.hidden = false;
+    updateSendEnabled();
+  }
+
+  // ---------- GitHub commit flow ----------
+  // Photos/documents can exceed the Contents API's 1MB inline limit, so every
+  // send goes through the Git Data API (blob + tree + commit + ref update),
+  // which has no such limit and lets the inbox.json update and the new file
+  // land in the same atomic commit.
+
+  function ghHeaders(extra) {
+    var h = { Authorization: "token " + gh.pat, Accept: "application/vnd.github+json" };
+    if (extra) for (var k in extra) h[k] = extra[k];
+    return h;
+  }
+
+  function apiBase() {
+    return "https://api.github.com/repos/" + gh.owner + "/" + gh.repo;
+  }
+
+  function ghJson(url, options) {
+    return fetch(url, options).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (body) {
+          var err = new Error((body && body.message) || (url + " failed (" + res.status + ")"));
+          err.status = res.status;
+          throw err;
+        });
+      }
+      return res.json();
+    });
+  }
+
+  function getDefaultBranch() {
+    return ghJson(apiBase(), { headers: ghHeaders() }).then(function (json) { return json.default_branch; });
+  }
+
+  function getInboxData(branch) {
+    return ghJson(apiBase() + "/contents/" + INBOX_PATH + "?ref=" + branch, { headers: ghHeaders() })
+      .then(function (json) {
+        var data = JSON.parse(b64decode(json.content));
+        data.entries = data.entries || [];
+        return data;
+      });
+  }
+
+  function createBlob(base64Content) {
+    return ghJson(apiBase() + "/git/blobs", {
+      method: "POST",
+      headers: ghHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ content: base64Content, encoding: "base64" })
+    }).then(function (json) { return json.sha; });
+  }
+
+  function attemptCommit(entry, blobSha, blobPath, attempt) {
+    var branch;
+    return getDefaultBranch()
+      .then(function (b) {
+        branch = b;
+        return Promise.all([
+          getInboxData(branch),
+          ghJson(apiBase() + "/git/refs/heads/" + branch, { headers: ghHeaders() })
+        ]);
+      })
+      .then(function (results) {
+        var data = results[0];
+        var commitSha = results[1].object.sha;
+        data.entries.push(entry);
+        return ghJson(apiBase() + "/git/commits/" + commitSha, { headers: ghHeaders() })
+          .then(function (commitJson) {
+            var treeEntries = [
+              { path: INBOX_PATH, mode: "100644", type: "blob", content: JSON.stringify(data, null, 2) }
+            ];
+            if (blobSha) {
+              treeEntries.push({ path: blobPath, mode: "100644", type: "blob", sha: blobSha });
+            }
+            return ghJson(apiBase() + "/git/trees", {
+              method: "POST",
+              headers: ghHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ base_tree: commitJson.tree.sha, tree: treeEntries })
+            }).then(function (treeJson) {
+              return ghJson(apiBase() + "/git/commits", {
+                method: "POST",
+                headers: ghHeaders({ "Content-Type": "application/json" }),
+                body: JSON.stringify({
+                  message: "PaperNote capture: " + entry.filename,
+                  tree: treeJson.sha,
+                  parents: [commitSha]
+                })
+              });
+            });
+          })
+          .then(function (newCommitJson) {
+            return fetch(apiBase() + "/git/refs/heads/" + branch, {
+              method: "PATCH",
+              headers: ghHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ sha: newCommitJson.sha })
+            });
+          });
+      })
+      .then(function (res) {
+        if (res.ok) return;
+        if (attempt < MAX_COMMIT_ATTEMPTS) {
+          return attemptCommit(entry, blobSha, blobPath, attempt + 1);
+        }
+        throw new Error("Ref update failed after " + attempt + " attempts (" + res.status + ")");
+      });
+  }
+
+  function submit() {
+    if (!gh || !gh.pat) {
+      setStatus("Set up your GitHub token first.", "err");
+      openSettings();
+      return;
+    }
+
+    var entry = {
+      id: uid(),
+      type: mode,
+      filename: null,
+      textContent: null,
+      blobPath: null,
+      mimeType: null,
+      capturedBy: gh.name || null,
+      capturedAt: new Date().toISOString()
+    };
+
+    var blobPromise;
+    var blobPath = null;
+
+    if (mode === "text") {
+      var text = el.textInput.value.trim();
+      if (!text) return;
+      entry.filename = guessTextFilename(text);
+      entry.textContent = text;
+      blobPromise = Promise.resolve(null);
+    } else {
+      if (!pickedFile) return;
+      entry.filename = sanitizeFilename(pickedFile.name);
+      entry.mimeType = pickedFile.type || null;
+      blobPath = "files/" + entry.id + "__" + entry.filename;
+      entry.blobPath = blobPath;
+      blobPromise = fileToBase64(pickedFile).then(createBlob);
+    }
+
+    el.addBtn.disabled = true;
+    setStatus("Sending…");
+
+    blobPromise
+      .then(function (blobSha) { return attemptCommit(entry, blobSha, blobPath, 1); })
+      .then(function () {
+        setStatus("Sent.", "ok");
+        resetCapture();
+      })
+      .catch(function (err) {
+        setStatus("Couldn't send — check your connection or token in Settings.", "err");
+        console.error(err);
+        updateSendEnabled();
+      });
+  }
+
+  el.addBtn.addEventListener("click", submit);
+
+  loadConfig();
+  if (!gh || !gh.pat) {
+    openSettings();
+  }
+  updateSendEnabled();
+})();
+</script>
+</body>
+</html>
