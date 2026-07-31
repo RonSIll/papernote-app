@@ -90,6 +90,10 @@
     font-family: inherit;
   }
   #fileNoteInput:focus { outline: none; }
+  #pasteBtn {
+    flex: 0 0 auto; background: var(--bg2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 0; padding: 13.5px 4px; font-size: 19.5px; font-weight: 500; cursor: pointer;
+  }
   .pickArea {
     flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -151,6 +155,7 @@
         <img class="thumb" id="fileThumb" hidden>
         <div class="filename" id="fileFilename"></div>
       </div>
+      <button type="button" id="pasteBtn">Paste from clipboard</button>
       <input type="text" id="fileNoteInput" placeholder="Add a note&#8230;">
       <input type="file" id="fileInput">
     </div>
@@ -216,6 +221,7 @@
     fileHint: document.getElementById("fileHint"),
     fileFilename: document.getElementById("fileFilename"),
     fileNoteInput: document.getElementById("fileNoteInput"),
+    pasteBtn: document.getElementById("pasteBtn"),
     addBtn: document.getElementById("addBtn"),
     status: document.getElementById("status")
   };
@@ -397,6 +403,34 @@
     e.preventDefault();
     setMode("file");
     adoptPickedFile(file);
+  });
+
+  // Explicit button, not just the paste event above — iOS's long-press
+  // "Paste" menu only appears on editable text elements, not the picker
+  // area, and its support for delivering file data through the paste
+  // event has been inconsistent across iOS versions. Reading the
+  // clipboard directly via a tapped button sidesteps both problems.
+  el.pasteBtn.addEventListener("click", function () {
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+      setStatus("Clipboard paste isn't supported in this browser.", "err");
+      return;
+    }
+    navigator.clipboard.read().then(function (items) {
+      var imageType = null;
+      var matchedItem = null;
+      for (var i = 0; i < items.length && !imageType; i++) {
+        var found = items[i].types.filter(function (t) { return t.indexOf("image/") === 0; })[0];
+        if (found) { imageType = found; matchedItem = items[i]; }
+      }
+      if (!matchedItem) throw new Error("No image found on the clipboard.");
+      return matchedItem.getType(imageType).then(function (blob) {
+        var ext = imageType.split("/")[1] || "png";
+        adoptPickedFile(new File([blob], "pasted-image." + ext, { type: imageType }));
+        setStatus("Pasted from clipboard.", "ok");
+      });
+    }).catch(function (err) {
+      setStatus("Couldn't paste — " + err.message, "err");
+    });
   });
 
   function resetCapture() {
