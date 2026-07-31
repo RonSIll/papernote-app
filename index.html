@@ -156,7 +156,7 @@
         <div class="filename" id="fileFilename"></div>
       </div>
       <button type="button" id="pasteBtn">Paste from clipboard</button>
-      <input type="text" id="fileNoteInput" placeholder="Add a note&#8230;">
+      <input type="text" id="fileNoteInput" placeholder="Add a note&#8230;" autocomplete="off">
       <input type="file" id="fileInput">
     </div>
   </div>
@@ -174,19 +174,19 @@
 <div id="settings" hidden>
   <div class="row">
     <label for="patInput">GitHub token (fine-grained PAT, Contents: Read and write)</label>
-    <input id="patInput" type="password" placeholder="ghp_...">
+    <input id="patInput" type="password" placeholder="ghp_..." autocomplete="new-password">
   </div>
   <div class="row">
     <label for="ownerInput">Owner</label>
-    <input id="ownerInput" type="text">
+    <input id="ownerInput" type="text" autocomplete="off">
   </div>
   <div class="row">
     <label for="repoInput">Repo</label>
-    <input id="repoInput" type="text">
+    <input id="repoInput" type="text" autocomplete="off">
   </div>
   <div class="row">
     <label for="nameInput">Your name (optional, shown on your captures)</label>
-    <input id="nameInput" type="text" placeholder="Ron or Kelly">
+    <input id="nameInput" type="text" placeholder="Ron or Kelly" autocomplete="off">
   </div>
   <button id="saveSettingsBtn">Save</button>
 </div>
