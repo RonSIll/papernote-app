@@ -504,15 +504,6 @@
     return ghJson(apiBase(), { headers: ghHeaders() }).then(function (json) { return json.default_branch; });
   }
 
-  function getInboxData(branch) {
-    return ghJson(apiBase() + "/contents/" + INBOX_PATH + "?ref=" + branch, { headers: ghHeaders() })
-      .then(function (json) {
-        var data = JSON.parse(b64decode(json.content));
-        data.entries = data.entries || [];
-        return data;
-      });
-  }
-
   function createBlob(base64Content) {
     return ghJson(apiBase() + "/git/blobs", {
       method: "POST",
@@ -521,51 +512,74 @@
     }).then(function (json) { return json.sha; });
   }
 
+  // Reads inbox.json's current entries straight out of a specific tree via
+  // the Git Data API (tree -> blob), rather than the Contents API's
+  // ?ref=branch endpoint. The Contents API can lag a few seconds behind a
+  // just-landed commit; attemptCommit already reads the latest commit SHA
+  // through the always-fresh git/refs endpoint, so a laggy Contents API
+  // read of inbox.json let a commit be built whose base tree and whose
+  // inbox.json content came from two different moments in history — the
+  // new commit was a valid fast-forward (so nothing caught it), but its
+  // inbox.json silently reverted to the older entry list, orphaning
+  // whatever capture had landed in between. Reading the blob directly out
+  // of the same tree used as base_tree makes that divergence impossible.
+  function getInboxDataFromTree(treeSha) {
+    return ghJson(apiBase() + "/git/trees/" + treeSha, { headers: ghHeaders() })
+      .then(function (treeJson) {
+        var entry = (treeJson.tree || []).filter(function (e) { return e.path === INBOX_PATH; })[0];
+        if (!entry) return { entries: [] };
+        return ghJson(apiBase() + "/git/blobs/" + entry.sha, { headers: ghHeaders() })
+          .then(function (blobJson) {
+            var data = JSON.parse(b64decode(blobJson.content.replace(/\n/g, "")));
+            data.entries = data.entries || [];
+            return data;
+          });
+      });
+  }
+
   function attemptCommit(entry, blobSha, blobPath, attempt) {
-    var branch;
+    var branch, commitSha;
     return getDefaultBranch()
       .then(function (b) {
         branch = b;
-        return Promise.all([
-          getInboxData(branch),
-          ghJson(apiBase() + "/git/refs/heads/" + branch, { headers: ghHeaders() })
-        ]);
+        return ghJson(apiBase() + "/git/refs/heads/" + branch, { headers: ghHeaders() });
       })
-      .then(function (results) {
-        var data = results[0];
-        var commitSha = results[1].object.sha;
-        data.entries.push(entry);
-        return ghJson(apiBase() + "/git/commits/" + commitSha, { headers: ghHeaders() })
-          .then(function (commitJson) {
-            var treeEntries = [
-              { path: INBOX_PATH, mode: "100644", type: "blob", content: JSON.stringify(data, null, 2) }
-            ];
-            if (blobSha) {
-              treeEntries.push({ path: blobPath, mode: "100644", type: "blob", sha: blobSha });
-            }
-            return ghJson(apiBase() + "/git/trees", {
+      .then(function (refJson) {
+        commitSha = refJson.object.sha;
+        return ghJson(apiBase() + "/git/commits/" + commitSha, { headers: ghHeaders() });
+      })
+      .then(function (commitJson) {
+        return getInboxDataFromTree(commitJson.tree.sha).then(function (data) {
+          data.entries.push(entry);
+          var treeEntries = [
+            { path: INBOX_PATH, mode: "100644", type: "blob", content: JSON.stringify(data, null, 2) }
+          ];
+          if (blobSha) {
+            treeEntries.push({ path: blobPath, mode: "100644", type: "blob", sha: blobSha });
+          }
+          return ghJson(apiBase() + "/git/trees", {
+            method: "POST",
+            headers: ghHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ base_tree: commitJson.tree.sha, tree: treeEntries })
+          }).then(function (treeJson) {
+            return ghJson(apiBase() + "/git/commits", {
               method: "POST",
               headers: ghHeaders({ "Content-Type": "application/json" }),
-              body: JSON.stringify({ base_tree: commitJson.tree.sha, tree: treeEntries })
-            }).then(function (treeJson) {
-              return ghJson(apiBase() + "/git/commits", {
-                method: "POST",
-                headers: ghHeaders({ "Content-Type": "application/json" }),
-                body: JSON.stringify({
-                  message: "PaperNote capture: " + entry.filename,
-                  tree: treeJson.sha,
-                  parents: [commitSha]
-                })
-              });
-            });
-          })
-          .then(function (newCommitJson) {
-            return fetch(apiBase() + "/git/refs/heads/" + branch, {
-              method: "PATCH",
-              headers: ghHeaders({ "Content-Type": "application/json" }),
-              body: JSON.stringify({ sha: newCommitJson.sha })
+              body: JSON.stringify({
+                message: "PaperNote capture: " + entry.filename,
+                tree: treeJson.sha,
+                parents: [commitSha]
+              })
             });
           });
+        });
+      })
+      .then(function (newCommitJson) {
+        return fetch(apiBase() + "/git/refs/heads/" + branch, {
+          method: "PATCH",
+          headers: ghHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ sha: newCommitJson.sha })
+        });
       })
       .then(function (res) {
         if (res.ok) return;
