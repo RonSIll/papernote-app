@@ -425,55 +425,81 @@
       });
   }
 
+  // Reads inbox.json's current entries straight out of a specific tree via
+  // the Git Data API (tree -> blob), rather than the Contents API's
+  // ?ref=branch endpoint (still used by fetchInbox()'s read-only display
+  // load, where a few seconds of staleness just means a momentarily stale
+  // list). Here it matters: attemptRemoval reads the latest commit SHA
+  // through the always-fresh git/refs endpoint, so a laggy Contents API
+  // read of inbox.json could build a removal commit from an older entry
+  // list than the one actually current — silently reverting a capture that
+  // landed in the gap, even though the removal commit itself was a valid
+  // fast-forward. Reading the blob out of the same tree used as base_tree
+  // makes that divergence impossible. (Root-caused 2026-07-31 after a
+  // capture's entry went missing from inbox.json while its file landed
+  // fine — the same gap existed on PaperNote's write side and is fixed
+  // there too.)
+  function getInboxDataFromTree(treeSha) {
+    return ghJson(apiBase() + "/git/trees/" + treeSha, { headers: ghHeaders() })
+      .then(function (treeJson) {
+        var entry = (treeJson.tree || []).filter(function (e) { return e.path === INBOX_PATH; })[0];
+        if (!entry) return { entries: [] };
+        return ghJson(apiBase() + "/git/blobs/" + entry.sha, { headers: ghHeaders() })
+          .then(function (blobJson) {
+            var data = JSON.parse(b64decode(blobJson.content.replace(/\n/g, "")));
+            data.entries = data.entries || [];
+            return data;
+          });
+      });
+  }
+
   function attemptRemoval(idsToRemove, attempt) {
-    var branch;
+    var branch, commitSha;
     return getDefaultBranch()
       .then(function (b) {
         branch = b;
-        return Promise.all([
-          getInboxData(branch),
-          ghJson(apiBase() + "/git/refs/heads/" + branch, { headers: ghHeaders() })
-        ]);
+        return ghJson(apiBase() + "/git/refs/heads/" + branch, { headers: ghHeaders() });
       })
-      .then(function (results) {
-        var data = results[0];
-        var commitSha = results[1].object.sha;
-        var removed = [];
-        data.entries = data.entries.filter(function (e) {
-          if (idsToRemove.indexOf(e.id) !== -1) { removed.push(e); return false; }
-          return true;
-        });
-        return ghJson(apiBase() + "/git/commits/" + commitSha, { headers: ghHeaders() })
-          .then(function (commitJson) {
-            var treeEntries = [
-              { path: INBOX_PATH, mode: "100644", type: "blob", content: JSON.stringify(data, null, 2) }
-            ];
-            removed.forEach(function (e) {
-              if (e.blobPath) treeEntries.push({ path: e.blobPath, mode: "100644", type: "blob", sha: null });
-            });
-            return ghJson(apiBase() + "/git/trees", {
+      .then(function (refJson) {
+        commitSha = refJson.object.sha;
+        return ghJson(apiBase() + "/git/commits/" + commitSha, { headers: ghHeaders() });
+      })
+      .then(function (commitJson) {
+        return getInboxDataFromTree(commitJson.tree.sha).then(function (data) {
+          var removed = [];
+          data.entries = data.entries.filter(function (e) {
+            if (idsToRemove.indexOf(e.id) !== -1) { removed.push(e); return false; }
+            return true;
+          });
+          var treeEntries = [
+            { path: INBOX_PATH, mode: "100644", type: "blob", content: JSON.stringify(data, null, 2) }
+          ];
+          removed.forEach(function (e) {
+            if (e.blobPath) treeEntries.push({ path: e.blobPath, mode: "100644", type: "blob", sha: null });
+          });
+          return ghJson(apiBase() + "/git/trees", {
+            method: "POST",
+            headers: ghHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ base_tree: commitJson.tree.sha, tree: treeEntries })
+          }).then(function (treeJson) {
+            return ghJson(apiBase() + "/git/commits", {
               method: "POST",
               headers: ghHeaders({ "Content-Type": "application/json" }),
-              body: JSON.stringify({ base_tree: commitJson.tree.sha, tree: treeEntries })
-            }).then(function (treeJson) {
-              return ghJson(apiBase() + "/git/commits", {
-                method: "POST",
-                headers: ghHeaders({ "Content-Type": "application/json" }),
-                body: JSON.stringify({
-                  message: "PaperFile: remove " + removed.length + " entr" + (removed.length === 1 ? "y" : "ies"),
-                  tree: treeJson.sha,
-                  parents: [commitSha]
-                })
-              });
-            });
-          })
-          .then(function (newCommitJson) {
-            return fetch(apiBase() + "/git/refs/heads/" + branch, {
-              method: "PATCH",
-              headers: ghHeaders({ "Content-Type": "application/json" }),
-              body: JSON.stringify({ sha: newCommitJson.sha })
+              body: JSON.stringify({
+                message: "PaperFile: remove " + removed.length + " entr" + (removed.length === 1 ? "y" : "ies"),
+                tree: treeJson.sha,
+                parents: [commitSha]
+              })
             });
           });
+        });
+      })
+      .then(function (newCommitJson) {
+        return fetch(apiBase() + "/git/refs/heads/" + branch, {
+          method: "PATCH",
+          headers: ghHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ sha: newCommitJson.sha })
+        });
       })
       .then(function (res) {
         if (res.ok) return;
