@@ -636,10 +636,6 @@
     var rows = selectedRows();
     if (!rows.length) return;
     var ids = rows.map(function (r) { return r.dataset.id; });
-    var confirmMsg = ids.length === 1
-      ? "Discard this note? This can't be undone."
-      : "Discard these " + ids.length + " notes? This can't be undone.";
-    if (!window.confirm(confirmMsg)) return;
     el.discardBtn.disabled = true;
     setStatus("Discarding…");
     attemptRemoval(ids, 1)
