@@ -374,9 +374,17 @@
     return msalInitPromise;
   }
 
-  function onConnected() {
+  function onConnected(account) {
+    msalAccount = account;
+    // Remember which of possibly several signed-in Microsoft accounts this
+    // is, so a future page load can reconnect to the same one instead of
+    // silently grabbing whichever cached account MSAL happens to list
+    // first (that's the bug that originally connected the wrong account).
+    azure.accountUsername = account.username;
+    saveAzureConfig();
     el.connectBtn.hidden = true;
     el.connectedLabel.hidden = false;
+    el.connectedLabel.textContent = "Connected (" + account.username + ")";
     el.tagSelect.disabled = false;
     listTags().then(renderTagOptions).catch(function (err) {
       setStatus("Couldn't list OneDrive tags — " + err.message, "err");
@@ -387,19 +395,22 @@
     return initMsal().then(function (app) {
       if (!app) return;
       var accounts = app.getAllAccounts();
-      if (accounts.length) {
-        msalAccount = accounts[0];
-        onConnected();
-      }
+      if (!accounts.length) return;
+      var remembered = azure && azure.accountUsername;
+      var match = remembered ? accounts.filter(function (a) { return a.username === remembered; })[0] : null;
+      // Only auto-reconnect to a specific, previously-chosen account. With
+      // more than one Microsoft account signed into the browser and no
+      // memory of which is correct, stay disconnected and let Connect's
+      // account picker (below) ask explicitly rather than guessing.
+      if (match) onConnected(match);
     });
   }
 
   el.connectBtn.addEventListener("click", function () {
     initMsal().then(function (app) {
       if (!app) { setStatus("Set an Azure Client ID in Settings first.", "err"); openSettings(); return; }
-      return app.loginPopup({ scopes: GRAPH_SCOPES }).then(function (result) {
-        msalAccount = result.account;
-        onConnected();
+      return app.loginPopup({ scopes: GRAPH_SCOPES, prompt: "select_account" }).then(function (result) {
+        onConnected(result.account);
       });
     }).catch(function (err) {
       setStatus("OneDrive connection failed — " + err.message, "err");
