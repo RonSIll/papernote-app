@@ -91,7 +91,7 @@
   }
   #fileNoteInput:focus { outline: none; }
   #pasteBtn {
-    flex: 0 0 auto; background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+    flex: 0 0 auto; background: var(--bg2); color: var(--text2); border: 1px solid var(--border);
     border-radius: 0; padding: 13.5px 4px; font-size: 14px; font-weight: 400; cursor: pointer;
   }
   .pickArea {
@@ -355,6 +355,29 @@
     if (!btn) return;
     setMode(btn.dataset.mode);
   });
+
+  // Swipe between Text and File, iOS-style. Only acts on a fast, mostly
+  // horizontal gesture (small time window, |dx| clearly bigger than |dy|),
+  // so it doesn't fire on ordinary taps or on the slower drag iOS uses for
+  // in-field text selection.
+  var touchStartX = null, touchStartY = null, touchStartTime = 0;
+  document.addEventListener("touchstart", function (e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+  document.addEventListener("touchend", function (e) {
+    if (touchStartX === null || !el.settings.hidden) { touchStartX = null; return; }
+    var touch = e.changedTouches && e.changedTouches[0];
+    var dx = touch ? touch.clientX - touchStartX : 0;
+    var dy = touch ? touch.clientY - touchStartY : 0;
+    var dt = Date.now() - touchStartTime;
+    touchStartX = null;
+    if (!touch || dt > 600 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0 && mode === "text") setMode("file");
+    else if (dx > 0 && mode === "file") setMode("text");
+  }, { passive: true });
 
   function updateSendEnabled() {
     var ready = false;
