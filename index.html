@@ -320,9 +320,18 @@
     return (base || "untitled") + ext;
   }
 
-  function setStatus(msg, cls) {
+  var statusTimer = null;
+  function setStatus(msg, cls, autoDismissMs) {
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
     el.status.textContent = msg;
     el.status.className = cls || "";
+    if (autoDismissMs) {
+      statusTimer = setTimeout(function () {
+        el.status.textContent = "";
+        el.status.className = "";
+        statusTimer = null;
+      }, autoDismissMs);
+    }
   }
 
   function fileToBase64(file) {
@@ -431,34 +440,68 @@
     adoptPickedFile(file);
   });
 
+  // Maps a clipboard MIME type to a reasonable file extension. Known-type
+  // lookup first, since a MIME subtype doesn't always make a sane extension
+  // on its own (Office formats especially); otherwise fall back to the
+  // subtype itself, stripped of "x-"/"vnd.*." prefixes some browsers add.
+  function extensionForMime(mime) {
+    var known = {
+      "application/pdf": "pdf",
+      "application/msword": "doc",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+      "application/vnd.ms-excel": "xls",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+      "application/vnd.ms-powerpoint": "ppt",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+      "video/quicktime": "mov",
+      "video/x-msvideo": "avi",
+      "video/x-matroska": "mkv"
+    };
+    if (known[mime]) return known[mime];
+    var sub = (mime.split("/")[1] || "bin").split(";")[0];
+    sub = sub.replace(/^x-/, "").replace(/^vnd\.[^.]*\.?/, "");
+    return (sub && sub.length <= 6) ? sub : "bin";
+  }
+
   // Explicit button, not just the paste event above — iOS's long-press
   // "Paste" menu only appears on editable text elements, not the picker
   // area, and its support for delivering file data through the paste
   // event has been inconsistent across iOS versions. Reading the
   // clipboard directly via a tapped button sidesteps both problems.
+  //
+  // Accepts the first non-text clipboard item (images, documents, videos —
+  // whatever the browser exposes), not just images. Note this is bounded by
+  // what browsers actually put on the Clipboard API in the first place: a
+  // plain file copy in Windows Explorer (Ctrl+C on a PDF, say) generally
+  // isn't exposed to web pages at all, regardless of this filter — that
+  // still needs the tap-to-browse picker below, which has no type
+  // restriction and reads real files directly from disk.
   el.pasteBtn.addEventListener("click", function () {
     if (!navigator.clipboard || !navigator.clipboard.read) {
       setStatus("Clipboard paste isn't supported in this browser.", "err");
       return;
     }
     navigator.clipboard.read().then(function (items) {
-      var imageType = null;
+      var pasteType = null;
       var matchedItem = null;
-      for (var i = 0; i < items.length && !imageType; i++) {
-        var found = items[i].types.filter(function (t) { return t.indexOf("image/") === 0; })[0];
-        if (found) { imageType = found; matchedItem = items[i]; }
+      for (var i = 0; i < items.length && !pasteType; i++) {
+        var found = items[i].types.filter(function (t) { return t.indexOf("text/") !== 0; })[0];
+        if (found) { pasteType = found; matchedItem = items[i]; }
       }
-      if (!matchedItem) throw new Error("No image found on the clipboard.");
-      return matchedItem.getType(imageType).then(function (blob) {
-        var ext = imageType.split("/")[1] || "png";
-        adoptPickedFile(new File([blob], "pasted-image." + ext, { type: imageType }));
+      if (!matchedItem) throw new Error("Nothing to paste — copy an image, document, or video first, then try again.");
+      return matchedItem.getType(pasteType).then(function (blob) {
+        var ext = extensionForMime(pasteType);
+        var base = pasteType.indexOf("image/") === 0 ? "pasted-image"
+          : pasteType.indexOf("video/") === 0 ? "pasted-video"
+          : "pasted-file";
+        adoptPickedFile(new File([blob], base + "." + ext, { type: pasteType }));
         setStatus("Pasted from clipboard.", "ok");
       });
     }).catch(function (err) {
       if (err.name === "NotAllowedError") {
-        setStatus("Nothing to paste — copy an image first, then try again.", "err");
+        setStatus("Nothing to paste — copy an image, document, or video first, then try again.", "err", 5000);
       } else {
-        setStatus("Couldn't paste — " + err.message, "err");
+        setStatus(err.message || "Couldn't paste from clipboard.", "err", 5000);
       }
     });
   });
