@@ -65,6 +65,12 @@
     background: var(--bg2); color: var(--text); font-family: inherit;
   }
   textarea:focus { outline: none; }
+  #fileNoteInput {
+    flex: 0 0 auto; width: 100%; border: 1px solid var(--border); border-radius: 0;
+    padding: 10px 12px; font-size: 15px; background: var(--bg2); color: var(--text);
+    font-family: inherit;
+  }
+  #fileNoteInput:focus { outline: none; }
   .pickArea {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 10px; border: 1px dashed var(--border); background: var(--bg2); cursor: pointer;
@@ -124,6 +130,7 @@
         <img class="thumb" id="fileThumb" hidden>
         <div class="filename" id="fileFilename"></div>
       </div>
+      <input type="text" id="fileNoteInput" placeholder="Add a note&#8230; (becomes the filename)">
       <input type="file" id="fileInput">
     </div>
   </div>
@@ -178,6 +185,7 @@
     fileThumb: document.getElementById("fileThumb"),
     fileHint: document.getElementById("fileHint"),
     fileFilename: document.getElementById("fileFilename"),
+    fileNoteInput: document.getElementById("fileNoteInput"),
     addBtn: document.getElementById("addBtn"),
     status: document.getElementById("status")
   };
@@ -255,6 +263,15 @@
     return name;
   }
 
+  function fileFilenameFor(file, note) {
+    var extMatch = /\.[a-zA-Z0-9]{1,8}$/.exec(file.name);
+    var ext = extMatch ? extMatch[0] : "";
+    var trimmedNote = (note || "").trim();
+    if (!trimmedNote) return sanitizeFilename(file.name);
+    var base = sanitizeFilename(trimmedNote).replace(/\.+$/, "");
+    return (base || "untitled") + ext;
+  }
+
   function setStatus(msg, cls) {
     el.status.textContent = msg;
     el.status.className = cls || "";
@@ -321,6 +338,7 @@
     el.textInput.value = "";
     pickedFile = null;
     el.fileInput.value = "";
+    el.fileNoteInput.value = "";
     el.fileFilename.textContent = "";
     el.fileThumb.hidden = true;
     el.fileHint.hidden = false;
@@ -465,7 +483,7 @@
       // The File tab covers both photos and documents; classify by MIME type
       // so the inbox entry still distinguishes them for PaperFile.
       entry.type = pickedFile.type && pickedFile.type.indexOf("image/") === 0 ? "photo" : "document";
-      entry.filename = sanitizeFilename(pickedFile.name);
+      entry.filename = fileFilenameFor(pickedFile, el.fileNoteInput.value);
       entry.mimeType = pickedFile.type || null;
       blobPath = "files/" + entry.id + "__" + entry.filename;
       entry.blobPath = blobPath;
