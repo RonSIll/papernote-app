@@ -26,10 +26,16 @@
     }
   }
   * { box-sizing: border-box; }
+  html {
+    height: 100%;
+    overscroll-behavior: none;
+  }
   body {
-    margin: 0; height: 100vh; display: flex; flex-direction: column;
+    margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column;
     background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    position: fixed; inset: 0; overscroll-behavior: none;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
   }
   header {
     display: flex; align-items: center; justify-content: space-between;
@@ -105,29 +111,20 @@
 <main id="main">
   <div id="modeTabs">
     <button id="tabText" class="on" data-mode="text">Text</button>
-    <button id="tabPhoto" data-mode="photo">Photo</button>
-    <button id="tabDocument" data-mode="document">Document</button>
+    <button id="tabFile" data-mode="file">File</button>
   </div>
   <div id="panels">
     <div class="panel" id="panelText">
       <textarea id="textInput" placeholder="Note&#8230;"></textarea>
     </div>
-    <div class="panel" id="panelPhoto" hidden>
-      <div class="pickArea" id="photoPick">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M8 5l1.5-2h5L16 5"/></svg>
-        <div class="hint" id="photoHint">Tap to take or choose a photo</div>
-        <img class="thumb" id="photoThumb" hidden>
-        <div class="filename" id="photoFilename"></div>
-      </div>
-      <input type="file" id="photoInput" accept="image/*">
-    </div>
-    <div class="panel" id="panelDocument" hidden>
-      <div class="pickArea" id="documentPick">
+    <div class="panel" id="panelFile" hidden>
+      <div class="pickArea" id="filePick">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-        <div class="hint" id="documentHint">Tap to choose a document</div>
-        <div class="filename" id="documentFilename"></div>
+        <div class="hint" id="fileHint">Tap to add a photo or document</div>
+        <img class="thumb" id="fileThumb" hidden>
+        <div class="filename" id="fileFilename"></div>
       </div>
-      <input type="file" id="documentInput">
+      <input type="file" id="fileInput">
     </div>
   </div>
   <button id="addBtn" disabled>Send</button>
@@ -174,25 +171,20 @@
     saveSettingsBtn: document.getElementById("saveSettingsBtn"),
     modeTabs: document.getElementById("modeTabs"),
     panelText: document.getElementById("panelText"),
-    panelPhoto: document.getElementById("panelPhoto"),
-    panelDocument: document.getElementById("panelDocument"),
+    panelFile: document.getElementById("panelFile"),
     textInput: document.getElementById("textInput"),
-    photoPick: document.getElementById("photoPick"),
-    photoInput: document.getElementById("photoInput"),
-    photoThumb: document.getElementById("photoThumb"),
-    photoHint: document.getElementById("photoHint"),
-    photoFilename: document.getElementById("photoFilename"),
-    documentPick: document.getElementById("documentPick"),
-    documentInput: document.getElementById("documentInput"),
-    documentHint: document.getElementById("documentHint"),
-    documentFilename: document.getElementById("documentFilename"),
+    filePick: document.getElementById("filePick"),
+    fileInput: document.getElementById("fileInput"),
+    fileThumb: document.getElementById("fileThumb"),
+    fileHint: document.getElementById("fileHint"),
+    fileFilename: document.getElementById("fileFilename"),
     addBtn: document.getElementById("addBtn"),
     status: document.getElementById("status")
   };
 
   var gh = null;
   var mode = "text";
-  var pickedFile = null; // File object for photo/document modes
+  var pickedFile = null; // File object for file mode (photo or document, classified by MIME type at send time)
 
   // ---------- config ----------
 
@@ -289,8 +281,7 @@
       buttons[i].classList.toggle("on", buttons[i].dataset.mode === next);
     }
     el.panelText.hidden = next !== "text";
-    el.panelPhoto.hidden = next !== "photo";
-    el.panelDocument.hidden = next !== "document";
+    el.panelFile.hidden = next !== "file";
     updateSendEnabled();
   }
 
@@ -309,39 +300,30 @@
 
   el.textInput.addEventListener("input", updateSendEnabled);
 
-  el.photoPick.addEventListener("click", function () { el.photoInput.click(); });
-  el.photoInput.addEventListener("change", function () {
-    var file = el.photoInput.files[0];
+  el.filePick.addEventListener("click", function () { el.fileInput.click(); });
+  el.fileInput.addEventListener("change", function () {
+    var file = el.fileInput.files[0];
     if (!file) return;
     pickedFile = file;
-    el.photoFilename.textContent = file.name;
-    el.photoHint.hidden = true;
-    var url = URL.createObjectURL(file);
-    el.photoThumb.src = url;
-    el.photoThumb.hidden = false;
-    updateSendEnabled();
-  });
-
-  el.documentPick.addEventListener("click", function () { el.documentInput.click(); });
-  el.documentInput.addEventListener("change", function () {
-    var file = el.documentInput.files[0];
-    if (!file) return;
-    pickedFile = file;
-    el.documentFilename.textContent = file.name;
-    el.documentHint.hidden = true;
+    el.fileFilename.textContent = file.name;
+    el.fileHint.hidden = true;
+    if (file.type && file.type.indexOf("image/") === 0) {
+      var url = URL.createObjectURL(file);
+      el.fileThumb.src = url;
+      el.fileThumb.hidden = false;
+    } else {
+      el.fileThumb.hidden = true;
+    }
     updateSendEnabled();
   });
 
   function resetCapture() {
     el.textInput.value = "";
     pickedFile = null;
-    el.photoInput.value = "";
-    el.documentInput.value = "";
-    el.photoFilename.textContent = "";
-    el.photoThumb.hidden = true;
-    el.photoHint.hidden = false;
-    el.documentFilename.textContent = "";
-    el.documentHint.hidden = false;
+    el.fileInput.value = "";
+    el.fileFilename.textContent = "";
+    el.fileThumb.hidden = true;
+    el.fileHint.hidden = false;
     updateSendEnabled();
   }
 
@@ -459,7 +441,7 @@
 
     var entry = {
       id: uid(),
-      type: mode,
+      type: null,
       filename: null,
       textContent: null,
       blobPath: null,
@@ -474,11 +456,15 @@
     if (mode === "text") {
       var text = el.textInput.value.trim();
       if (!text) return;
+      entry.type = "text";
       entry.filename = guessTextFilename(text);
       entry.textContent = text;
       blobPromise = Promise.resolve(null);
     } else {
       if (!pickedFile) return;
+      // The File tab covers both photos and documents; classify by MIME type
+      // so the inbox entry still distinguishes them for PaperFile.
+      entry.type = pickedFile.type && pickedFile.type.indexOf("image/") === 0 ? "photo" : "document";
       entry.filename = sanitizeFilename(pickedFile.name);
       entry.mimeType = pickedFile.type || null;
       blobPath = "files/" + entry.id + "__" + entry.filename;
