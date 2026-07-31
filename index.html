@@ -44,14 +44,14 @@
   header h1 { font-size: 15px; font-weight: 600; margin: 0; }
   .iconBtn {
     background: none; border: none; color: var(--text2); cursor: pointer;
-    padding: 4px; line-height: 1; display: flex; align-items: center;
+    padding: 6px 4px; line-height: 1; display: flex; align-items: center;
   }
   main { flex: 1; display: flex; flex-direction: column; padding: 12px 14px; gap: 10px; min-height: 0; }
   main[hidden] { display: none; }
   #modeTabs { display: flex; gap: 0; border: 1px solid var(--border); flex: 0 0 auto; }
   #modeTabs button {
     flex: 1; min-width: 0; background: var(--bg2); color: var(--text2); border: none;
-    padding: 9px 4px; font-size: 13px; font-weight: 500; cursor: pointer;
+    padding: 13.5px 4px; font-size: 19.5px; font-weight: 500; cursor: pointer;
     border-right: 0.5px solid var(--border);
   }
   #modeTabs button:last-child { border-right: none; }
@@ -67,7 +67,7 @@
   textarea:focus { outline: none; }
   #fileNoteInput {
     flex: 0 0 auto; width: 100%; border: 1px solid var(--border); border-radius: 0;
-    padding: 10px 12px; font-size: 15px; background: var(--bg2); color: var(--text);
+    padding: 15px 12px; font-size: 22.5px; background: var(--bg2); color: var(--text);
     font-family: inherit;
   }
   #fileNoteInput:focus { outline: none; }
@@ -83,7 +83,7 @@
   input[type="file"] { display: none; }
   #addBtn {
     background: var(--active); color: var(--active-on); border: none; border-radius: 0;
-    padding: 11px; font-size: 15px; font-weight: 500; cursor: pointer; flex: 0 0 auto;
+    padding: 16.5px 11px; font-size: 22.5px; font-weight: 500; cursor: pointer; flex: 0 0 auto;
   }
   #addBtn:disabled { opacity: 0.5; cursor: default; }
   #bottomRow { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
@@ -101,7 +101,7 @@
   #settings .row { display: flex; flex-direction: column; gap: 3px; }
   #saveSettingsBtn {
     background: var(--accent); border: none; color: white;
-    border-radius: 0; padding: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border-radius: 0; padding: 12px 8px; font-size: 19.5px; font-weight: 500; cursor: pointer;
   }
 </style>
 </head>
@@ -109,7 +109,7 @@
 <header>
   <h1>PaperNote</h1>
   <button id="cancelBtn" class="iconBtn" title="Clear">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
@@ -138,7 +138,7 @@
   <button id="addBtn" disabled>Send</button>
   <div id="bottomRow">
     <button id="gearBtn" class="iconBtn" title="Settings">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
