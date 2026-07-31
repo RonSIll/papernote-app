@@ -504,24 +504,44 @@
     });
   }
 
+  // 10MiB — a clean multiple of the 320KiB alignment Graph requires for
+  // upload-session fragments, and comfortably under its ~60MiB per-request
+  // cap. Sending a whole large file in one PUT (the old approach) gets
+  // rejected above that cap; splitting into fragments this size removes
+  // the ceiling entirely, up to whatever GitHub's own 100MB blob limit
+  // already allows through on the read side.
+  var UPLOAD_CHUNK_SIZE = 10 * 1024 * 1024;
+
   function uploadToNotesFolder(notesFolderId, filename, arrayBuffer, token) {
     var url = DRIVE_BASE + "/items/" + notesFolderId + ":/" + encodeURIComponentPath(filename) + ":/createUploadSession";
     return graphFetch(url, token, "POST", {
       item: { "@microsoft.graph.conflictBehavior": "rename" }
     }).then(function (session) {
-      var size = arrayBuffer.byteLength;
-      return fetch(session.uploadUrl, {
+      return uploadInChunks(session.uploadUrl, arrayBuffer);
+    });
+  }
+
+  function uploadInChunks(uploadUrl, arrayBuffer) {
+    var size = arrayBuffer.byteLength;
+    function uploadFrom(offset) {
+      var end = Math.min(offset + UPLOAD_CHUNK_SIZE, size);
+      var chunk = arrayBuffer.slice(offset, end);
+      return fetch(uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Length": String(size),
-          "Content-Range": "bytes 0-" + (size - 1) + "/" + size
+          "Content-Length": String(chunk.byteLength),
+          "Content-Range": "bytes " + offset + "-" + (end - 1) + "/" + size
         },
-        body: arrayBuffer
+        body: chunk
       }).then(function (res) {
         if (!res.ok) throw new Error("Upload failed (" + res.status + ")");
-        return res.json();
+        // Graph replies 202 with nextExpectedRanges for every fragment
+        // except the last, which completes with 200/201 and the item.
+        if (end >= size) return res.json();
+        return uploadFrom(end);
       });
-    });
+    }
+    return uploadFrom(0);
   }
 
   // ---------- list rendering ----------
