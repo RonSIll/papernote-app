@@ -141,14 +141,14 @@
 </header>
 <main id="main">
   <div id="modeTabs">
-    <button id="tabText" class="on" data-mode="text">Text</button>
-    <button id="tabFile" data-mode="file">File</button>
+    <button id="tabFile" class="on" data-mode="file">File</button>
+    <button id="tabText" data-mode="text">Text</button>
   </div>
   <div id="panels">
-    <div class="panel" id="panelText">
+    <div class="panel" id="panelText" hidden>
       <textarea id="textInput" placeholder="Note&#8230;"></textarea>
     </div>
-    <div class="panel" id="panelFile" hidden>
+    <div class="panel" id="panelFile">
       <div class="pickArea" id="filePick">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="hint" id="fileHint">Tap to add a photo or document</div>
@@ -227,7 +227,7 @@
   };
 
   var gh = null;
-  var mode = "text";
+  var mode = "file";
   var pickedFile = null; // File object for file mode (photo or document, classified by MIME type at send time)
 
   // ---------- config ----------
@@ -356,10 +356,13 @@
     setMode(btn.dataset.mode);
   });
 
-  // Swipe between Text and File, iOS-style. Only acts on a fast, mostly
+  // Swipe between File and Text, iOS-style. Only acts on a fast, mostly
   // horizontal gesture (small time window, |dx| clearly bigger than |dy|),
   // so it doesn't fire on ordinary taps or on the slower drag iOS uses for
-  // in-field text selection.
+  // in-field text selection. Direction matches the tabs' left-to-right
+  // order (File left, Text right, per the 2026-07-31 tab reorder) — swipe
+  // left moves to the tab on the right, swipe right moves to the tab on
+  // the left.
   var touchStartX = null, touchStartY = null, touchStartTime = 0;
   document.addEventListener("touchstart", function (e) {
     if (!e.touches || e.touches.length !== 1) return;
@@ -375,8 +378,8 @@
     var dt = Date.now() - touchStartTime;
     touchStartX = null;
     if (!touch || dt > 600 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
-    if (dx < 0 && mode === "text") setMode("file");
-    else if (dx > 0 && mode === "file") setMode("text");
+    if (dx < 0 && mode === "file") setMode("text");
+    else if (dx > 0 && mode === "text") setMode("file");
   }, { passive: true });
 
   function updateSendEnabled() {
