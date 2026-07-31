@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>PaperFile</title>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js"></script>
+<style>
+  :root {
+    --bg: #ffffff; --bg2: #f4f4f6; --text: #1c1c1e; --text2: #6b6b70;
+    --text3: #a0a0a5; --border: #e3e3e6; --accent: #4f6bff; --red: #ff3b30;
+    --green: #16794f; --active: #84cc16; --active-on: #1c1c1e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --bg2: #1c1c1e; --text: #f5f5f7; --text2: #98989d;
+      --text3: #6b6b70; --border: #2c2c2e; --accent: #7b8fff; --red: #ff453a;
+      --green: #4ade9e; --active: #a6e22e; --active-on: #1c1c1e;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; display: flex; flex-direction: column;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 0.5px solid var(--border); flex: 0 0 auto;
+  }
+  header h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  .iconBtn {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    padding: 6px; line-height: 1; display: flex; align-items: center;
+  }
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 900px; width: 100%; margin: 0 auto; padding: 16px 20px; gap: 12px; }
+  main[hidden] { display: none; }
+  #toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 0 0 auto; }
+  #toolbar select {
+    border: 1px solid var(--border); border-radius: 0; padding: 8px 10px; font-size: 14px;
+    background: var(--bg2); color: var(--text); font-family: inherit;
+  }
+  #toolbar button {
+    border: none; border-radius: 0; padding: 8px 14px; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  #toolbar button:disabled { opacity: 0.5; cursor: default; }
+  #connectBtn { background: var(--accent); color: white; }
+  #fileBtn { background: var(--active); color: var(--active-on); }
+  #discardBtn { background: none; color: var(--red); border: 1px solid var(--red); }
+  #refreshBtn { background: none; color: var(--text2); border: 1px solid var(--border); }
+  #connectedLabel { font-size: 13px; color: var(--green); }
+  #list { flex: 1; overflow-y: auto; border: 1px solid var(--border); min-height: 0; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 0.5px solid var(--border); }
+  .row:last-child { border-bottom: none; }
+  .rowFilename {
+    flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 0;
+    padding: 6px 8px; font-size: 14px; background: var(--bg2); color: var(--text); font-family: inherit;
+  }
+  .rowMeta { flex: 0 0 auto; font-size: 12px; color: var(--text2); white-space: nowrap; }
+  #emptyState { padding: 30px; text-align: center; color: var(--text2); font-size: 14px; }
+  #status { font-size: 13px; min-height: 16px; flex: 0 0 auto; }
+  #status.ok { color: var(--green); }
+  #status.err { color: var(--red); }
+  #settings { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; max-width: 480px; width: 100%; margin: 0 auto; }
+  #settings[hidden] { display: none; }
+  #settings label { font-size: 12px; color: var(--text2); }
+  #settings input {
+    width: 100%; border: 1px solid var(--border); border-radius: 0;
+    padding: 8px 10px; font-size: 14px; background: var(--bg2); color: var(--text);
+    font-family: inherit;
+  }
+  #settings .row2 { display: flex; flex-direction: column; gap: 3px; }
+  #saveSettingsBtn {
+    background: var(--accent); border: none; color: white;
+    border-radius: 0; padding: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>PaperFile</h1>
+  <button id="gearBtn" class="iconBtn" title="Settings">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+</header>
+<main id="main">
+  <div id="toolbar">
+    <input type="checkbox" id="selectAllCheck" title="Select all">
+    <select id="tagSelect" disabled>
+      <option value="">Tag&#8230;</option>
+    </select>
+    <button id="fileBtn" disabled>File Selected</button>
+    <button id="discardBtn" disabled>Discard Selected</button>
+    <button id="refreshBtn">Refresh</button>
+    <button id="connectBtn">Connect to OneDrive</button>
+    <span id="connectedLabel" hidden>Connected</span>
+  </div>
+  <div id="list"></div>
+  <div id="status"></div>
+</main>
+<div id="settings" hidden>
+  <div class="row2">
+    <label for="patInput">GitHub token (fine-grained PAT, Contents: Read and write, scoped to papernote-data)</label>
+    <input id="patInput" type="password" placeholder="ghp_...">
+  </div>
+  <div class="row2">
+    <label for="ownerInput">Owner</label>
+    <input id="ownerInput" type="text">
+  </div>
+  <div class="row2">
+    <label for="repoInput">Repo</label>
+    <input id="repoInput" type="text">
+  </div>
+  <div class="row2">
+    <label for="azureClientIdInput">Azure app Client ID (PaperFile's own registration — write scope)</label>
+    <input id="azureClientIdInput" type="text" placeholder="00000000-0000-0000-0000-000000000000">
+  </div>
+  <button id="saveSettingsBtn">Save</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // GitHub config is stored under the same key PaperNote uses, so a PAT
+  // entered in either app (they share the ronsill.github.io origin) works
+  // in both without re-entry.
+  var GH_CONFIG_KEY = "paperNoteGithubConfig";
+  var AZURE_CONFIG_KEY = "paperFileAzureConfig";
+  var INBOX_PATH = "inbox.json";
+  var DEFAULT_OWNER = "RonSIll";
+  var DEFAULT_REPO = "papernote-data";
+  var MAX_COMMIT_ATTEMPTS = 3;
+  var GRAPH_ROOT = "https://graph.microsoft.com/v1.0";
+  var DRIVE_BASE = GRAPH_ROOT + "/me/drive";
+  var TAG_ROOT_PATH = "Projects";
+  var GRAPH_SCOPES = ["Files.ReadWrite"];
+
+  var el = {
+    main: document.getElementById("main"),
+    gearBtn: document.getElementById("gearBtn"),
+    settings: document.getElementById("settings"),
+    patInput: document.getElementById("patInput"),
+    ownerInput: document.getElementById("ownerInput"),
+    repoInput: document.getElementById("repoInput"),
+    azureClientIdInput: document.getElementById("azureClientIdInput"),
+    saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+    toolbar: document.getElementById("toolbar"),
+    selectAllCheck: document.getElementById("selectAllCheck"),
+    tagSelect: document.getElementById("tagSelect"),
+    fileBtn: document.getElementById("fileBtn"),
+    discardBtn: document.getElementById("discardBtn"),
+    refreshBtn: document.getElementById("refreshBtn"),
+    connectBtn: document.getElementById("connectBtn"),
+    connectedLabel: document.getElementById("connectedLabel"),
+    list: document.getElementById("list"),
+    status: document.getElementById("status")
+  };
+
+  var gh = null;
+  var azure = null;
+  var entries = [];
+  var tags = []; // [{id, name}]
+  var notesFolderCache = {}; // tagId -> "0000-02 Notes" folder id
+  var msalApp = null;
+  var msalInitPromise = null;
+  var msalAccount = null;
+
+  // ---------- config ----------
+
+  function loadConfig() {
+    try {
+      var rawGh = localStorage.getItem(GH_CONFIG_KEY);
+      gh = rawGh ? JSON.parse(rawGh) : null;
+    } catch (e) { gh = null; }
+    try {
+      var rawAzure = localStorage.getItem(AZURE_CONFIG_KEY);
+      azure = rawAzure ? JSON.parse(rawAzure) : null;
+    } catch (e) { azure = null; }
+  }
+
+  function saveGhConfig() { localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(gh)); }
+  function saveAzureConfig() { localStorage.setItem(AZURE_CONFIG_KEY, JSON.stringify(azure)); }
+
+  function openSettings() {
+    el.patInput.value = gh && gh.pat ? gh.pat : "";
+    el.ownerInput.value = (gh && gh.owner) || DEFAULT_OWNER;
+    el.repoInput.value = (gh && gh.repo) || DEFAULT_REPO;
+    el.azureClientIdInput.value = (azure && azure.clientId) || "";
+    el.settings.hidden = false;
+    el.main.hidden = true;
+  }
+  function closeSettings() {
+    el.settings.hidden = true;
+    el.main.hidden = false;
+  }
+
+  el.gearBtn.addEventListener("click", function () {
+    if (el.settings.hidden) { openSettings(); } else { closeSettings(); }
+  });
+
+  el.saveSettingsBtn.addEventListener("click", function () {
+    var pat = el.patInput.value.trim();
+    var owner = el.ownerInput.value.trim() || DEFAULT_OWNER;
+    var repo = el.repoInput.value.trim() || DEFAULT_REPO;
+    var clientId = el.azureClientIdInput.value.trim();
+    if (!pat) {
+      setStatus("GitHub token is required.", "err");
+      return;
+    }
+    gh = { pat: pat, owner: owner, repo: repo, name: gh && gh.name };
+    saveGhConfig();
+    azure = { clientId: clientId };
+    saveAzureConfig();
+    closeSettings();
+    setStatus("Settings saved.", "ok");
+    fetchInbox();
+  });
+
+  // ---------- helpers ----------
+
+  function setStatus(msg, cls) {
+    el.status.textContent = msg;
+    el.status.className = cls || "";
+  }
+
+  function b64decode(str) {
+    return decodeURIComponent(escape(atob(str)));
+  }
+
+  function base64ToArrayBuffer(base64) {
+    var binary = atob(base64);
+    var len = binary.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+  }
+
+  function textToArrayBuffer(text) {
+    return new TextEncoder().encode(text).buffer;
+  }
+
+  function encodeURIComponentPath(path) {
+    return path.split("/").map(encodeURIComponent).join("/");
+  }
+
+  // ---------- GitHub: read inbox, remove entries ----------
+  // Removal uses the same Git Data API commit-and-retry pattern PaperNote's
+  // own send flow uses, since a capture landing mid-review and a filing
+  // removal can hit papernote-data at the same time. Setting a tree entry's
+  // sha to null deletes that path (the file's blob) in the same commit.
+
+  function ghHeaders(extra) {
+    var h = { Authorization: "token " + gh.pat, Accept: "application/vnd.github+json" };
+    if (extra) for (var k in extra) h[k] = extra[k];
+    return h;
+  }
+
+  function apiBase() {
+    return "https://api.github.com/repos/" + gh.owner + "/" + gh.repo;
+  }
+
+  function ghJson(url, options) {
+    return fetch(url, options).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (body) {
+          var err = new Error((body && body.message) || (url + " failed (" + res.status + ")"));
+          err.status = res.status;
+          throw err;
+        });
+      }
+      return res.json();
+    });
+  }
+
+  function getDefaultBranch() {
+    return ghJson(apiBase(), { headers: ghHeaders() }).then(function (json) { return json.default_branch; });
+  }
+
+  function getInboxData(branch) {
+    return ghJson(apiBase() + "/contents/" + INBOX_PATH + "?ref=" + branch, { headers: ghHeaders() })
+      .then(function (json) {
+        var data = JSON.parse(b64decode(json.content));
+        data.entries = data.entries || [];
+        return data;
+      });
+  }
+
+  function fetchBlobBase64(blobPath, branch) {
+    return ghJson(apiBase() + "/contents/" + blobPath + "?ref=" + branch, { headers: ghHeaders() })
+      .then(function (json) { return json.content.replace(/\n/g, ""); });
+  }
+
+  function attemptRemoval(idsToRemove, attempt) {
+    var branch;
+    return getDefaultBranch()
+      .then(function (b) {
+        branch = b;
+        return Promise.all([
+          getInboxData(branch),
+          ghJson(apiBase() + "/git/refs/heads/" + branch, { headers: ghHeaders() })
+        ]);
+      })
+      .then(function (results) {
+        var data = results[0];
+        var commitSha = results[1].object.sha;
+        var removed = [];
+        data.entries = data.entries.filter(function (e) {
+          if (idsToRemove.indexOf(e.id) !== -1) { removed.push(e); return false; }
+          return true;
+        });
+        return ghJson(apiBase() + "/git/commits/" + commitSha, { headers: ghHeaders() })
+          .then(function (commitJson) {
+            var treeEntries = [
+              { path: INBOX_PATH, mode: "100644", type: "blob", content: JSON.stringify(data, null, 2) }
+            ];
+            removed.forEach(function (e) {
+              if (e.blobPath) treeEntries.push({ path: e.blobPath, mode: "100644", type: "blob", sha: null });
+            });
+            return ghJson(apiBase() + "/git/trees", {
+              method: "POST",
+              headers: ghHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ base_tree: commitJson.tree.sha, tree: treeEntries })
+            }).then(function (treeJson) {
+              return ghJson(apiBase() + "/git/commits", {
+                method: "POST",
+                headers: ghHeaders({ "Content-Type": "application/json" }),
+                body: JSON.stringify({
+                  message: "PaperFile: remove " + removed.length + " entr" + (removed.length === 1 ? "y" : "ies"),
+                  tree: treeJson.sha,
+                  parents: [commitSha]
+                })
+              });
+            });
+          })
+          .then(function (newCommitJson) {
+            return fetch(apiBase() + "/git/refs/heads/" + branch, {
+              method: "PATCH",
+              headers: ghHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({ sha: newCommitJson.sha })
+            });
+          });
+      })
+      .then(function (res) {
+        if (res.ok) return;
+        if (attempt < MAX_COMMIT_ATTEMPTS) {
+          return attemptRemoval(idsToRemove, attempt + 1);
+        }
+        throw new Error("Ref update failed after " + attempt + " attempts (" + res.status + ")");
+      });
+  }
+
+  // ---------- Microsoft Graph: auth ----------
+
+  function initMsal() {
+    if (!azure || !azure.clientId) return Promise.resolve(null);
+    if (msalInitPromise) return msalInitPromise;
+    msalApp = new msal.PublicClientApplication({
+      auth: {
+        clientId: azure.clientId,
+        authority: "https://login.microsoftonline.com/common",
+        redirectUri: window.location.href
+      },
+      cache: { cacheLocation: "localStorage" }
+    });
+    msalInitPromise = msalApp.initialize().then(function () { return msalApp; });
+    return msalInitPromise;
+  }
+
+  function onConnected() {
+    el.connectBtn.hidden = true;
+    el.connectedLabel.hidden = false;
+    el.tagSelect.disabled = false;
+    listTags().then(renderTagOptions).catch(function (err) {
+      setStatus("Couldn't list OneDrive tags — " + err.message, "err");
+    });
+  }
+
+  function tryRestoreAccount() {
+    return initMsal().then(function (app) {
+      if (!app) return;
+      var accounts = app.getAllAccounts();
+      if (accounts.length) {
+        msalAccount = accounts[0];
+        onConnected();
+      }
+    });
+  }
+
+  el.connectBtn.addEventListener("click", function () {
+    initMsal().then(function (app) {
+      if (!app) { setStatus("Set an Azure Client ID in Settings first.", "err"); openSettings(); return; }
+      return app.loginPopup({ scopes: GRAPH_SCOPES }).then(function (result) {
+        msalAccount = result.account;
+        onConnected();
+      });
+    }).catch(function (err) {
+      setStatus("OneDrive connection failed — " + err.message, "err");
+    });
+  });
+
+  function getGraphToken() {
+    return initMsal().then(function (app) {
+      if (!app || !msalAccount) return Promise.reject(new Error("Not connected to OneDrive."));
+      return app.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: msalAccount })
+        .then(function (r) { return r.accessToken; })
+        .catch(function () {
+          return app.acquireTokenPopup({ scopes: GRAPH_SCOPES, account: msalAccount })
+            .then(function (r) { return r.accessToken; });
+        });
+    });
+  }
+
+  // ---------- Microsoft Graph: tags, folders, upload ----------
+
+  function graphFetch(url, token, method, body) {
+    var headers = { Authorization: "Bearer " + token };
+    var opts = { method: method || "GET", headers: headers };
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(url, opts).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (b) {
+          throw new Error((b.error && b.error.message) || (url + " failed (" + res.status + ")"));
+        });
+      }
+      if (res.status === 204) return null;
+      return res.json();
+    });
+  }
+
+  function listTags() {
+    return getGraphToken().then(function (token) {
+      var url = DRIVE_BASE + "/root:/" + encodeURIComponentPath(TAG_ROOT_PATH) + ":/children?$top=200";
+      return graphFetch(url, token).then(function (result) {
+        return (result.value || [])
+          .filter(function (c) { return c.folder; })
+          .map(function (c) { return { id: c.id, name: c.name }; })
+          .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      });
+    });
+  }
+
+  function renderTagOptions(list) {
+    tags = list;
+    el.tagSelect.innerHTML = '<option value="">Tag&#8230;</option>';
+    tags.forEach(function (t) {
+      var opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.name;
+      el.tagSelect.appendChild(opt);
+    });
+  }
+
+  function ensureNotesFolder(tagId, token) {
+    if (notesFolderCache[tagId]) return Promise.resolve(notesFolderCache[tagId]);
+    var url = DRIVE_BASE + "/items/" + tagId + "/children?$top=200";
+    return graphFetch(url, token).then(function (result) {
+      var existing = (result.value || []).find(function (c) { return c.folder && c.name === "0000-02 Notes"; });
+      if (existing) { notesFolderCache[tagId] = existing.id; return existing.id; }
+      return graphFetch(DRIVE_BASE + "/items/" + tagId + "/children", token, "POST", {
+        name: "0000-02 Notes", folder: {}, "@microsoft.graph.conflictBehavior": "fail"
+      }).then(function (created) {
+        notesFolderCache[tagId] = created.id;
+        return created.id;
+      }).catch(function () {
+        // Someone else created it in the same moment — re-list and use it.
+        return graphFetch(url, token).then(function (r2) {
+          var e2 = (r2.value || []).find(function (c) { return c.folder && c.name === "0000-02 Notes"; });
+          if (e2) { notesFolderCache[tagId] = e2.id; return e2.id; }
+          throw new Error("Could not create or find 0000-02 Notes folder");
+        });
+      });
+    });
+  }
+
+  function uploadToNotesFolder(notesFolderId, filename, arrayBuffer, token) {
+    var url = DRIVE_BASE + "/items/" + notesFolderId + ":/" + encodeURIComponentPath(filename) + ":/createUploadSession";
+    return graphFetch(url, token, "POST", {
+      item: { "@microsoft.graph.conflictBehavior": "rename" }
+    }).then(function (session) {
+      var size = arrayBuffer.byteLength;
+      return fetch(session.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Length": String(size),
+          "Content-Range": "bytes 0-" + (size - 1) + "/" + size
+        },
+        body: arrayBuffer
+      }).then(function (res) {
+        if (!res.ok) throw new Error("Upload failed (" + res.status + ")");
+        return res.json();
+      });
+    });
+  }
+
+  // ---------- list rendering ----------
+
+  function fetchInbox() {
+    if (!gh || !gh.pat) { openSettings(); return Promise.resolve(); }
+    setStatus("Loading inbox…");
+    return getDefaultBranch()
+      .then(function (branch) { return getInboxData(branch); })
+      .then(function (data) {
+        entries = data.entries || [];
+        renderList();
+        setStatus(entries.length ? "" : "Inbox is empty.");
+      })
+      .catch(function (err) {
+        setStatus("Couldn't load inbox — " + err.message, "err");
+      });
+  }
+
+  function renderList() {
+    el.list.innerHTML = "";
+    if (!entries.length) {
+      var empty = document.createElement("div");
+      empty.id = "emptyState";
+      empty.textContent = "Nothing waiting to be filed.";
+      el.list.appendChild(empty);
+      updateToolbarState();
+      return;
+    }
+    entries.forEach(function (entry) {
+      var row = document.createElement("div");
+      row.className = "row";
+      row.dataset.id = entry.id;
+
+      var check = document.createElement("input");
+      check.type = "checkbox";
+      check.className = "rowCheck";
+      check.addEventListener("change", updateToolbarState);
+
+      var filenameInput = document.createElement("input");
+      filenameInput.type = "text";
+      filenameInput.className = "rowFilename";
+      filenameInput.value = entry.filename;
+
+      var meta = document.createElement("div");
+      meta.className = "rowMeta";
+      var when = "";
+      try { when = new Date(entry.capturedAt).toLocaleString(); } catch (e) { when = entry.capturedAt; }
+      var who = entry.capturedBy ? (entry.capturedBy + " · ") : "";
+      meta.textContent = entry.type + " · " + who + when;
+
+      row.appendChild(check);
+      row.appendChild(filenameInput);
+      row.appendChild(meta);
+      el.list.appendChild(row);
+    });
+    updateToolbarState();
+  }
+
+  function selectedRows() {
+    return Array.prototype.slice.call(el.list.querySelectorAll(".row")).filter(function (row) {
+      return row.querySelector(".rowCheck").checked;
+    });
+  }
+
+  function updateToolbarState() {
+    var selected = selectedRows();
+    el.discardBtn.disabled = selected.length === 0;
+    el.fileBtn.disabled = selected.length === 0 || !el.tagSelect.value || el.tagSelect.disabled;
+  }
+
+  el.selectAllCheck.addEventListener("change", function () {
+    var checked = el.selectAllCheck.checked;
+    Array.prototype.forEach.call(el.list.querySelectorAll(".rowCheck"), function (c) { c.checked = checked; });
+    updateToolbarState();
+  });
+
+  el.tagSelect.addEventListener("change", updateToolbarState);
+  el.refreshBtn.addEventListener("click", fetchInbox);
+
+  // ---------- actions ----------
+
+  function entryById(id) {
+    return entries.filter(function (e) { return e.id === id; })[0];
+  }
+
+  function currentFilenameForRow(row) {
+    return row.querySelector(".rowFilename").value.trim();
+  }
+
+  el.discardBtn.addEventListener("click", function () {
+    var rows = selectedRows();
+    if (!rows.length) return;
+    var ids = rows.map(function (r) { return r.dataset.id; });
+    el.discardBtn.disabled = true;
+    setStatus("Discarding…");
+    attemptRemoval(ids, 1)
+      .then(function () {
+        setStatus("Discarded " + ids.length + ".", "ok");
+        return fetchInbox();
+      })
+      .catch(function (err) {
+        setStatus("Couldn't discard — " + err.message, "err");
+      })
+      .finally(function () { updateToolbarState(); });
+  });
+
+  el.fileBtn.addEventListener("click", function () {
+    var rows = selectedRows();
+    var tagId = el.tagSelect.value;
+    if (!rows.length || !tagId) return;
+
+    el.fileBtn.disabled = true;
+    el.discardBtn.disabled = true;
+    setStatus("Filing 0/" + rows.length + "…");
+
+    var branch, token;
+    var filed = [];
+    var failed = [];
+
+    getGraphToken()
+      .then(function (t) {
+        token = t;
+        return getDefaultBranch();
+      })
+      .then(function (b) {
+        branch = b;
+        return ensureNotesFolder(tagId, token);
+      })
+      .then(function (notesFolderId) {
+        return rows.reduce(function (chain, row, i) {
+          return chain.then(function () {
+            var id = row.dataset.id;
+            var entry = entryById(id);
+            var filename = currentFilenameForRow(row) || entry.filename;
+            var bytesPromise = entry.type === "text"
+              ? Promise.resolve(textToArrayBuffer(entry.textContent))
+              : fetchBlobBase64(entry.blobPath, branch).then(base64ToArrayBuffer);
+            return bytesPromise
+              .then(function (bytes) { return uploadToNotesFolder(notesFolderId, filename, bytes, token); })
+              .then(function () { filed.push(id); })
+              .catch(function (err) { failed.push({ id: id, filename: filename, error: err.message }); })
+              .then(function () { setStatus("Filing " + (i + 1) + "/" + rows.length + "…"); });
+          });
+        }, Promise.resolve());
+      })
+      .then(function () {
+        if (!filed.length) return;
+        return attemptRemoval(filed, 1);
+      })
+      .then(function () {
+        return fetchInbox();
+      })
+      .then(function () {
+        var tagName = (tags.filter(function (t) { return t.id === tagId; })[0] || {}).name || "tag";
+        if (failed.length) {
+          console.error("PaperFile: failed to file", failed);
+          setStatus("Filed " + filed.length + " to " + tagName + " — " + failed.length + " failed, see console.", "err");
+        } else {
+          setStatus("Filed " + filed.length + " to " + tagName + ".", "ok");
+        }
+      })
+      .catch(function (err) {
+        setStatus("Filing failed — " + err.message, "err");
+      })
+      .finally(function () { updateToolbarState(); });
+  });
+
+  loadConfig();
+  if (!gh || !gh.pat) {
+    openSettings();
+  } else {
+    fetchInbox();
+    tryRestoreAccount();
+  }
+})();
+</script>
+</body>
+</html>
