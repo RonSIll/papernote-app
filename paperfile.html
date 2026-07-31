@@ -32,12 +32,7 @@
     display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px;
     gap: 20px; padding-right: 50px; /* 16px row gap + 34px trash column — keeps fileBtn flush with the cards' own right edge, not the trash icons' */
   }
-  .topbar h1 { font-size: 19px; font-weight: 600; margin: 0 0 3px; letter-spacing: -0.01em; }
-  .topbar .sub { font-size: 13px; color: var(--text2); margin: 0; }
-  .topbar .sub button {
-    background: none; border: none; color: var(--accent); font-size: 13px; font-family: inherit;
-    cursor: pointer; padding: 0; text-decoration: underline;
-  }
+  .topbar h1 { font-size: 19px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
   .fileAction { text-align: right; flex: 0 0 auto; }
   .fileBtn {
     background: var(--accent); color: #fff; border: none;
@@ -116,17 +111,19 @@
   #status.ok { color: var(--green); }
   #status.err { color: var(--red); }
 
-  .gear {
-    position: absolute; top: 20px; right: 32px; width: 42px; height: 42px;
-    background: none; border: none; display: flex;
-    align-items: center; justify-content: center; cursor: pointer;
+  .topActions { position: absolute; top: 24px; right: 32px; display: flex; align-items: center; gap: 18px; }
+  .topActions button {
+    background: none; border: none; color: var(--text2); display: flex; align-items: center; gap: 6px;
+    font-size: 13.5px; font-weight: 500; cursor: pointer; padding: 0; font-family: inherit;
   }
-  .gear svg { width: 19px; height: 19px; color: var(--text2); }
-  .gear .dot {
-    position: absolute; top: -3px; right: -3px; width: 10px; height: 10px;
+  .topActions button:hover { color: var(--text); }
+  .topActions svg { width: 16px; height: 16px; }
+  .iconWrap { position: relative; display: flex; }
+  .iconWrap .dot {
+    position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
     border-radius: 50%; background: var(--red); border: 2px solid var(--bg);
   }
-  .gear .dot[hidden] { display: none; }
+  .iconWrap .dot[hidden] { display: none; }
 
   #settings { max-width: 480px; margin: 0 auto; padding: 40px 32px; display: flex; flex-direction: column; gap: 14px; }
   #settings[hidden] { display: none; }
@@ -169,7 +166,6 @@
   <div class="topbar">
     <div>
       <h1>PaperFile</h1>
-      <p class="sub" id="subheading"><button id="refreshBtn" type="button">Refresh</button></p>
     </div>
     <div class="fileAction">
       <button class="fileBtn" id="fileBtn">File tagged notes</button>
@@ -216,12 +212,21 @@
   <button id="saveSettingsBtn">Save</button>
 </div>
 
-<div class="gear" id="gearBtn" title="Settings">
-  <div class="dot" id="gearDot"></div>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
+<div class="topActions">
+  <button id="refreshBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    Refresh
+  </button>
+  <button id="gearBtn" type="button" title="Settings">
+    <span class="iconWrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span class="dot" id="gearDot"></span>
+    </span>
+    Manage
+  </button>
 </div>
 
 <script>
@@ -248,7 +253,6 @@
 
   var el = {
     page: document.getElementById("page"),
-    subheading: document.getElementById("subheading"),
     refreshBtn: document.getElementById("refreshBtn"),
     fileBtn: document.getElementById("fileBtn"),
     list: document.getElementById("list"),
@@ -730,11 +734,6 @@
       });
   }
 
-  function updateSubheading() {
-    el.subheading.textContent = "";
-    el.subheading.appendChild(el.refreshBtn);
-  }
-
   function populateTagSelect(select) {
     var current = select.value;
     select.innerHTML = "";
@@ -872,7 +871,6 @@
     } else {
       entries.forEach(function (entry) { el.list.appendChild(buildRow(entry)); });
     }
-    updateSubheading();
   }
 
   el.refreshBtn.addEventListener("click", fetchInbox);
