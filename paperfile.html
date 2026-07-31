@@ -395,7 +395,7 @@
     return fetch(url, options).then(function (res) {
       if (!res.ok) {
         return res.json().catch(function () { return {}; }).then(function (body) {
-          var err = new Error((body && body.message) || (url + " failed (" + res.status + ")"));
+          var err = new Error((body && body.message) || ("GitHub didn't accept that request (status " + res.status + ")."));
           err.status = res.status;
           throw err;
         });
@@ -408,12 +408,35 @@
     return ghJson(apiBase(), { headers: ghHeaders() }).then(function (json) { return json.default_branch; });
   }
 
+  // Checks that a parsed inbox.json has the shape both apps expect, so a
+  // damaged or hand-edited file fails loudly and in plain language instead
+  // of quietly breaking something downstream (a blank list, a crash on a
+  // missing field, or — worst case — a write that further corrupts it).
+  function validateInboxData(data) {
+    var ok = data && typeof data === "object" && Array.isArray(data.entries);
+    if (ok) {
+      for (var i = 0; i < data.entries.length; i++) {
+        var e = data.entries[i];
+        if (!e || typeof e.id !== "string" ||
+            ["text", "photo", "document"].indexOf(e.type) === -1 ||
+            typeof e.filename !== "string") {
+          ok = false;
+          break;
+        }
+      }
+    }
+    if (!ok) {
+      throw new Error("The shared notes file (inbox.json) looks damaged — its contents aren't what PaperFile expects. Nothing was changed. This needs someone to look at papernote-data/inbox.json directly before continuing.");
+    }
+    return data;
+  }
+
   function getInboxData(branch) {
     return ghJson(apiBase() + "/contents/" + INBOX_PATH + "?ref=" + branch, { headers: ghHeaders() })
       .then(function (json) {
         var data = JSON.parse(b64decode(json.content));
         data.entries = data.entries || [];
-        return data;
+        return validateInboxData(data);
       });
   }
 
@@ -455,7 +478,7 @@
           .then(function (blobJson) {
             var data = JSON.parse(b64decode(blobJson.content.replace(/\n/g, "")));
             data.entries = data.entries || [];
-            return data;
+            return validateInboxData(data);
           });
       });
   }
@@ -513,7 +536,7 @@
         if (attempt < MAX_COMMIT_ATTEMPTS) {
           return attemptRemoval(idsToRemove, attempt + 1);
         }
-        throw new Error("Ref update failed after " + attempt + " attempts (" + res.status + ")");
+        throw new Error("Couldn't save — someone else may have saved to the shared inbox at the same moment. Wait a few seconds and try again.");
       });
   }
 
@@ -587,7 +610,7 @@
 
   function getGraphToken() {
     return initMsal().then(function (app) {
-      if (!app || !msalAccount) return Promise.reject(new Error("Not connected to OneDrive — open Settings to connect."));
+      if (!app || !msalAccount) return Promise.reject(new Error("Not connected to OneDrive yet — open Manage to connect."));
       return app.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: msalAccount })
         .then(function (r) { return r.accessToken; })
         .catch(function () {
@@ -609,7 +632,7 @@
     return fetch(url, opts).then(function (res) {
       if (!res.ok) {
         return res.json().catch(function () { return {}; }).then(function (b) {
-          throw new Error((b.error && b.error.message) || (url + " failed (" + res.status + ")"));
+          throw new Error((b.error && b.error.message) || ("Microsoft Graph didn't accept that request (status " + res.status + ")."));
         });
       }
       if (res.status === 204) return null;
@@ -645,7 +668,7 @@
         return graphFetch(url, token).then(function (r2) {
           var e2 = (r2.value || []).find(function (c) { return c.folder && c.name === "0000-02 Notes"; });
           if (e2) { notesFolderCache[tagId] = e2.id; return e2.id; }
-          throw new Error("Could not create or find 0000-02 Notes folder");
+          throw new Error("Couldn't create or find the Notes folder for that tag.");
         });
       });
     });
@@ -681,7 +704,7 @@
         },
         body: chunk
       }).then(function (res) {
-        if (!res.ok) throw new Error("Upload failed (" + res.status + ")");
+        if (!res.ok) throw new Error("OneDrive rejected that upload. Try again, or try a smaller file.");
         // Graph replies 202 with nextExpectedRanges for every fragment
         // except the last, which completes with 200/201 and the item.
         if (end >= size) return res.json();
