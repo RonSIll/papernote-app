@@ -137,7 +137,7 @@
 </header>
 <main id="main">
   <div id="modeTabs">
-    <button id="tabFile" class="on" data-mode="file">File</button>
+    <button id="tabFile" class="on" data-mode="file">Photo</button>
     <button id="tabText" data-mode="text">Text</button>
   </div>
   <div id="panels">
@@ -146,13 +146,13 @@
     </div>
     <div class="panel" id="panelFile">
       <div class="pickArea" id="filePick">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-        <div class="hint" id="fileHint">Tap to add a photo or document</div>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <div class="hint" id="fileHint">Tap to add a photo</div>
         <img class="thumb" id="fileThumb" hidden>
         <div class="filename" id="fileFilename"></div>
       </div>
       <input type="text" id="fileNoteInput" placeholder="Add a note&#8230;" autocomplete="off">
-      <input type="file" id="fileInput">
+      <input type="file" id="fileInput" accept="image/*">
     </div>
   </div>
   <button id="addBtn" disabled>Send</button>
@@ -222,7 +222,7 @@
 
   var gh = null;
   var mode = "file";
-  var pickedFile = null; // File object for file mode (photo or document, classified by MIME type at send time)
+  var pickedFile = null; // File object for photo mode, always an image (enforced at pick time)
 
   // ---------- config ----------
 
@@ -412,6 +412,14 @@
   el.fileInput.addEventListener("change", function () {
     var file = el.fileInput.files[0];
     if (!file) return;
+    // accept="image/*" is only a hint some pickers/providers can bypass, so
+    // this is the actual enforcement point for the images-only restriction
+    // (documents dropped from scope 2026-08-01).
+    if (!file.type || file.type.indexOf("image/") !== 0) {
+      setStatus("PaperNote only accepts photos now — pick an image file.", "err");
+      el.fileInput.value = "";
+      return;
+    }
     adoptPickedFile(file);
   });
 
@@ -598,9 +606,10 @@
       blobPromise = Promise.resolve(null);
     } else {
       if (!pickedFile) return;
-      // The File tab covers both photos and documents; classify by MIME type
-      // so the inbox entry still distinguishes them for PaperFile.
-      entry.type = pickedFile.type && pickedFile.type.indexOf("image/") === 0 ? "photo" : "document";
+      // Photo tab only accepts images now (documents dropped 2026-08-01),
+      // so this always resolves to "photo" — the change handler already
+      // rejected anything else before pickedFile could be set.
+      entry.type = "photo";
       entry.filename = fileFilenameFor(pickedFile, el.fileNoteInput.value);
       entry.mimeType = pickedFile.type || null;
       blobPath = "files/" + entry.id + "__" + entry.filename;
