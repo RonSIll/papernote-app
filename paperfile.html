@@ -68,6 +68,30 @@
     margin: 0; font-size: 10.5px; line-height: 1.45; color: var(--text2);
     display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
   }
+  .thumb.clickable { cursor: pointer; }
+
+  .previewOverlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: 40px;
+  }
+  .previewOverlay[hidden] { display: none; }
+  .previewBox {
+    position: relative; background: var(--bg2); border: 1px solid var(--border);
+    max-width: min(90vw, 800px); max-height: 85vh; overflow: auto;
+  }
+  .previewCloseBtn {
+    position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border: none;
+    background: rgba(0,0,0,0.55); color: #fff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 1;
+  }
+  .previewCloseBtn svg { width: 16px; height: 16px; }
+  .previewContent img { max-width: 100%; max-height: 85vh; display: block; margin: 0 auto; }
+  .previewContent .previewTextFull {
+    margin: 0; padding: 28px; font-size: 14px; line-height: 1.6; color: var(--text);
+    background: var(--note-bg); white-space: pre-wrap; word-break: break-word;
+    font-family: inherit; min-width: min(60vw, 480px);
+  }
+  .previewContent .previewLoading { padding: 28px; color: var(--text2); font-size: 13.5px; }
 
   .card {
     background: var(--bg2); border: 1px solid var(--border); padding: 16px 18px;
@@ -186,6 +210,15 @@
   <div id="status"></div>
 </div>
 
+<div class="previewOverlay" id="previewOverlay" hidden>
+  <div class="previewBox" id="previewBox" role="dialog" aria-modal="true">
+    <button class="previewCloseBtn" id="previewCloseBtn" type="button" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="previewContent" id="previewContent"></div>
+  </div>
+</div>
+
 <div id="settings" hidden>
   <h1>Settings</h1>
   <div class="row2">
@@ -268,7 +301,10 @@
     ownerInput: document.getElementById("ownerInput"),
     repoInput: document.getElementById("repoInput"),
     azureClientIdInput: document.getElementById("azureClientIdInput"),
-    saveSettingsBtn: document.getElementById("saveSettingsBtn")
+    saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+    previewOverlay: document.getElementById("previewOverlay"),
+    previewCloseBtn: document.getElementById("previewCloseBtn"),
+    previewContent: document.getElementById("previewContent")
   };
 
   var gh = null;
@@ -782,15 +818,73 @@
     Array.prototype.forEach.call(el.list.querySelectorAll(".tagSelect"), populateTagSelect);
   }
 
+  // ---------- preview modal (photo/text only — documents keep the generic icon, no preview) ----------
+
+  function showPreviewOverlay() { el.previewOverlay.hidden = false; }
+  function closePreviewOverlay() { el.previewOverlay.hidden = true; el.previewContent.innerHTML = ""; }
+
+  el.previewCloseBtn.addEventListener("click", closePreviewOverlay);
+  el.previewOverlay.addEventListener("click", function (e) {
+    if (e.target === el.previewOverlay) closePreviewOverlay();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !el.previewOverlay.hidden) closePreviewOverlay();
+  });
+
+  function openPreview(entry) {
+    el.previewContent.innerHTML = "";
+    if (entry.type === "text") {
+      var pre = document.createElement("pre");
+      pre.className = "previewTextFull";
+      pre.textContent = entry.textContent || "";
+      el.previewContent.appendChild(pre);
+      showPreviewOverlay();
+      return;
+    }
+    // photo — reuse the row thumbnail's already-fetched bytes if present,
+    // otherwise fetch them the same way loadPhotoThumb does.
+    if (thumbCache[entry.id]) {
+      var img = document.createElement("img");
+      img.src = thumbCache[entry.id];
+      el.previewContent.appendChild(img);
+      showPreviewOverlay();
+      return;
+    }
+    var loading = document.createElement("div");
+    loading.className = "previewLoading";
+    loading.textContent = "Loading preview…";
+    el.previewContent.appendChild(loading);
+    showPreviewOverlay();
+    if (!lastBranch || !entry.blobPath) return;
+    fetchBlobBase64(entry.blobPath, lastBranch).then(function (b64) {
+      var dataUri = "data:" + (entry.mimeType || "image/jpeg") + ";base64," + b64;
+      thumbCache[entry.id] = dataUri;
+      if (el.previewOverlay.hidden) return; // closed before the fetch resolved
+      el.previewContent.innerHTML = "";
+      var img2 = document.createElement("img");
+      img2.src = dataUri;
+      el.previewContent.appendChild(img2);
+    }).catch(function () {
+      if (el.previewOverlay.hidden) return;
+      el.previewContent.innerHTML = "";
+      var err = document.createElement("div");
+      err.className = "previewLoading";
+      err.textContent = "Couldn't load a preview for this photo.";
+      el.previewContent.appendChild(err);
+    });
+  }
+
   function buildThumb(entry) {
     var thumb = document.createElement("div");
     if (entry.type === "text") {
-      thumb.className = "thumb textPrev";
+      thumb.className = "thumb textPrev clickable";
       var p = document.createElement("p");
       p.textContent = entry.textContent || "";
       thumb.appendChild(p);
+      thumb.addEventListener("click", function () { openPreview(entry); });
     } else if (entry.type === "photo") {
-      thumb.className = "thumb";
+      thumb.className = "thumb clickable";
+      thumb.addEventListener("click", function () { openPreview(entry); });
       if (thumbCache[entry.id]) {
         var img = document.createElement("img");
         img.src = thumbCache[entry.id];
