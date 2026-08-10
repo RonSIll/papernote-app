@@ -275,6 +275,7 @@
   var entries = [];
   var tags = []; // plain tag names, from tags.json
   var thumbCache = {}; // entry id -> data URI, avoids refetching a photo's bytes on every re-render
+  var textCache = {}; // entry id -> decoded text, for a blob-format text entry's body (avoids refetching on every re-render)
   var lastErrors = {}; // entry id -> error message from the most recent failed filing/discard attempt
   var lastBranch = null;
 
@@ -432,6 +433,22 @@
       .then(function (blobJson) {
         return blobJson.content.replace(/\n/g, "");
       });
+  }
+
+  // A text entry's body lives in entry.textContent (legacy — every entry
+  // captured before PaperNote's own blob-write update ships) or in a blob at
+  // entry.blobPath (current format, same as a photo's bytes). Both shapes
+  // are permanent, not a temporary migration state — an old entry never gets
+  // rewritten just because this code changed — so this fallback stays
+  // needed indefinitely, not just during the rollout window.
+  function resolveTextContent(entry, branch) {
+    if (entry.textContent != null) return Promise.resolve(entry.textContent);
+    if (textCache[entry.id]) return Promise.resolve(textCache[entry.id]);
+    return fetchBlobBase64(entry.blobPath, branch).then(function (b64) {
+      var text = b64decode(b64);
+      textCache[entry.id] = text;
+      return text;
+    });
   }
 
   // Reads inbox.json's current entries straight out of a specific tree via
@@ -645,11 +662,39 @@
   function openPreview(entry) {
     el.previewContent.innerHTML = "";
     if (entry.type === "text") {
-      var pre = document.createElement("pre");
-      pre.className = "previewTextFull";
-      pre.textContent = entry.textContent || "";
-      el.previewContent.appendChild(pre);
+      // entry.textContent (legacy) or textCache (already fetched) resolve
+      // instantly, same as the photo branch's thumbCache check below — only
+      // a genuinely new blob-format fetch shows the loading state.
+      var immediateText = entry.textContent != null ? entry.textContent : textCache[entry.id];
+      if (immediateText != null) {
+        var pre = document.createElement("pre");
+        pre.className = "previewTextFull";
+        pre.textContent = immediateText;
+        el.previewContent.appendChild(pre);
+        showPreviewOverlay();
+        return;
+      }
+      var loadingText = document.createElement("div");
+      loadingText.className = "previewLoading";
+      loadingText.textContent = "Loading preview…";
+      el.previewContent.appendChild(loadingText);
       showPreviewOverlay();
+      if (!lastBranch || !entry.blobPath) return;
+      resolveTextContent(entry, lastBranch).then(function (text) {
+        if (el.previewOverlay.hidden) return; // closed before the fetch resolved
+        el.previewContent.innerHTML = "";
+        var pre2 = document.createElement("pre");
+        pre2.className = "previewTextFull";
+        pre2.textContent = text;
+        el.previewContent.appendChild(pre2);
+      }).catch(function () {
+        if (el.previewOverlay.hidden) return;
+        el.previewContent.innerHTML = "";
+        var err2 = document.createElement("div");
+        err2.className = "previewLoading";
+        err2.textContent = "Couldn't load a preview for this note.";
+        el.previewContent.appendChild(err2);
+      });
       return;
     }
     // photo — reuse the row thumbnail's already-fetched bytes if present,
@@ -690,7 +735,13 @@
     if (entry.type === "text") {
       thumb.className = "thumb textPrev clickable";
       var p = document.createElement("p");
-      p.textContent = entry.textContent || "";
+      if (entry.textContent != null) {
+        p.textContent = entry.textContent;
+      } else if (textCache[entry.id]) {
+        p.textContent = textCache[entry.id];
+      } else {
+        loadTextThumb(entry, p);
+      }
       thumb.appendChild(p);
       thumb.addEventListener("click", function () { openPreview(entry); });
     } else if (entry.type === "photo") {
@@ -725,6 +776,15 @@
         thumbEl.appendChild(img);
       }
     }).catch(function () { /* leave the generic icon in place */ });
+  }
+
+  function loadTextThumb(entry, pEl) {
+    if (!lastBranch || !entry.blobPath) return;
+    resolveTextContent(entry, lastBranch).then(function (text) {
+      // The row may have re-rendered (or the entry may be gone) by the time
+      // this resolves — only touch the DOM if this exact element is still there.
+      if (document.body.contains(pEl)) pEl.textContent = text;
+    }).catch(function () { /* leave the placeholder blank */ });
   }
 
   function buildRow(entry) {
