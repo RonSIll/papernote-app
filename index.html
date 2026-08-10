@@ -289,6 +289,10 @@
     return decodeURIComponent(escape(atob(str)));
   }
 
+  function b64encode(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
   function sanitizeFilename(name) {
     var cleaned = String(name || "").replace(/[\\/:*?"<>|\x00-\x1f]/g, "").trim();
     if (cleaned.length > 120) cleaned = cleaned.slice(0, 120);
@@ -602,8 +606,9 @@
       if (!text) return;
       entry.type = "text";
       entry.filename = guessTextFilename(text);
-      entry.textContent = text;
-      blobPromise = Promise.resolve(null);
+      blobPath = "files/" + entry.id + "__" + entry.filename;
+      entry.blobPath = blobPath;
+      blobPromise = createBlob(b64encode(text));
     } else {
       if (!pickedFile) return;
       // Photo tab only accepts images now (documents dropped 2026-08-01),
