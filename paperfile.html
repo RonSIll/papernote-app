@@ -7,7 +7,6 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>PaperFile</title>
-<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js"></script>
 <style>
   :root {
     --bg: #f4f4f6; --bg2: #ffffff; --text: #1c1c1e; --text2: #6b6b70;
@@ -144,13 +143,6 @@
   }
   .topActions button:hover { color: var(--text); }
   .topActions svg { width: 16px; height: 16px; }
-  .iconWrap { position: relative; display: flex; }
-  .iconWrap .dot {
-    position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
-    border-radius: 50%; background: var(--red); border: 2px solid var(--bg);
-  }
-  .iconWrap .dot[hidden] { display: none; }
-
   #settings { max-width: 480px; margin: 0 auto; padding: 40px 32px; display: flex; flex-direction: column; gap: 14px; }
   #settings[hidden] { display: none; }
   #settings h1 { font-size: 19px; font-weight: 600; margin: 0 0 4px; }
@@ -159,15 +151,6 @@
   #settings input {
     width: 100%; border: 1px solid var(--border); background: var(--bg2); color: var(--text);
     padding: 9px 10px; font-size: 14px; font-family: inherit;
-  }
-  .connectRow {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    border: 1px solid var(--border); background: var(--bg2); padding: 9px 10px; font-size: 13.5px;
-  }
-  .connectRow span { color: var(--text2); }
-  .connectRow button {
-    background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600;
-    font-family: inherit; cursor: pointer; padding: 0;
   }
   #saveSettingsBtn {
     background: var(--accent); border: none; color: #fff;
@@ -222,13 +205,6 @@
 <div id="settings" hidden>
   <h1>Settings</h1>
   <div class="row2">
-    <label>OneDrive</label>
-    <div class="connectRow">
-      <span id="odStatus">Not connected</span>
-      <button id="connectBtn" type="button">Connect</button>
-    </div>
-  </div>
-  <div class="row2">
     <label for="patInput">GitHub token (fine-grained PAT, Contents: Read and write, scoped to papernote-data)</label>
     <input id="patInput" type="password" placeholder="ghp_..." autocomplete="new-password">
   </div>
@@ -240,10 +216,6 @@
     <label for="repoInput">Repo</label>
     <input id="repoInput" type="text" autocomplete="off">
   </div>
-  <div class="row2">
-    <label for="azureClientIdInput">Azure app Client ID (PaperFile's own registration — write scope)</label>
-    <input id="azureClientIdInput" type="text" placeholder="00000000-0000-0000-0000-000000000000" autocomplete="off">
-  </div>
   <button id="saveSettingsBtn">Save</button>
 </div>
 
@@ -253,13 +225,10 @@
     Refresh
   </button>
   <button id="gearBtn" type="button" title="Settings">
-    <span class="iconWrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-      <span class="dot" id="gearDot"></span>
-    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
     Manage
   </button>
 </div>
@@ -272,15 +241,14 @@
   // entered in either app (they share the ronsill.github.io origin) works
   // in both without re-entry.
   var GH_CONFIG_KEY = "paperNoteGithubConfig";
-  var AZURE_CONFIG_KEY = "paperFileAzureConfig";
   var INBOX_PATH = "inbox.json";
+  // Maintained list of valid tag names — Ron edits this file directly to add
+  // a new tag (no in-app way yet). Replaces the old live OneDrive folder
+  // listing now that filing no longer touches OneDrive at all.
+  var TAGS_PATH = "tags.json";
   var DEFAULT_OWNER = "RonSIll";
   var DEFAULT_REPO = "papernote-data";
   var MAX_COMMIT_ATTEMPTS = 3;
-  var GRAPH_ROOT = "https://graph.microsoft.com/v1.0";
-  var DRIVE_BASE = GRAPH_ROOT + "/me/drive";
-  var TAG_ROOT_PATH = "Projects";
-  var GRAPH_SCOPES = ["Files.ReadWrite"];
 
   var PHOTO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14"/><circle cx="9" cy="10.5" r="1.6"/><path d="M3 16l5-4.5 4 3.5 3-3L21 16"/></svg>';
   var DOC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15h6M9 18h3"/></svg>';
@@ -293,14 +261,10 @@
     list: document.getElementById("list"),
     status: document.getElementById("status"),
     gearBtn: document.getElementById("gearBtn"),
-    gearDot: document.getElementById("gearDot"),
     settings: document.getElementById("settings"),
-    odStatus: document.getElementById("odStatus"),
-    connectBtn: document.getElementById("connectBtn"),
     patInput: document.getElementById("patInput"),
     ownerInput: document.getElementById("ownerInput"),
     repoInput: document.getElementById("repoInput"),
-    azureClientIdInput: document.getElementById("azureClientIdInput"),
     saveSettingsBtn: document.getElementById("saveSettingsBtn"),
     previewOverlay: document.getElementById("previewOverlay"),
     previewCloseBtn: document.getElementById("previewCloseBtn"),
@@ -308,16 +272,11 @@
   };
 
   var gh = null;
-  var azure = null;
   var entries = [];
-  var tags = []; // [{id, name}]
-  var notesFolderCache = {}; // tagId -> "0000-02 Notes" folder id
+  var tags = []; // plain tag names, from tags.json
   var thumbCache = {}; // entry id -> data URI, avoids refetching a photo's bytes on every re-render
-  var lastErrors = {}; // entry id -> error message from the most recent failed filing attempt
+  var lastErrors = {}; // entry id -> error message from the most recent failed filing/discard attempt
   var lastBranch = null;
-  var msalApp = null;
-  var msalInitPromise = null;
-  var msalAccount = null;
 
   // ---------- config ----------
 
@@ -326,21 +285,14 @@
       var rawGh = localStorage.getItem(GH_CONFIG_KEY);
       gh = rawGh ? JSON.parse(rawGh) : null;
     } catch (e) { gh = null; }
-    try {
-      var rawAzure = localStorage.getItem(AZURE_CONFIG_KEY);
-      azure = rawAzure ? JSON.parse(rawAzure) : null;
-    } catch (e) { azure = null; }
   }
 
   function saveGhConfig() { localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(gh)); }
-  function saveAzureConfig() { localStorage.setItem(AZURE_CONFIG_KEY, JSON.stringify(azure)); }
 
   function openSettings() {
     el.patInput.value = gh && gh.pat ? gh.pat : "";
     el.ownerInput.value = (gh && gh.owner) || DEFAULT_OWNER;
     el.repoInput.value = (gh && gh.repo) || DEFAULT_REPO;
-    el.azureClientIdInput.value = (azure && azure.clientId) || "";
-    updateConnectRow();
     el.settings.hidden = false;
     el.page.hidden = true;
   }
@@ -358,16 +310,12 @@
     var pat = el.patInput.value.trim();
     var owner = el.ownerInput.value.trim() || DEFAULT_OWNER;
     var repo = el.repoInput.value.trim() || DEFAULT_REPO;
-    var clientId = el.azureClientIdInput.value.trim();
     if (!pat) {
       setStatus("GitHub token is required.", "err");
       return;
     }
     gh = { pat: pat, owner: owner, repo: repo, name: gh && gh.name };
     saveGhConfig();
-    azure = azure || {};
-    azure.clientId = clientId;
-    saveAzureConfig();
     closeSettings();
     setStatus("Settings saved.", "ok");
     fetchInbox();
@@ -382,22 +330,6 @@
 
   function b64decode(str) {
     return decodeURIComponent(escape(atob(str)));
-  }
-
-  function base64ToArrayBuffer(base64) {
-    var binary = atob(base64);
-    var len = binary.length;
-    var bytes = new Uint8Array(len);
-    for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer;
-  }
-
-  function textToArrayBuffer(text) {
-    return new TextEncoder().encode(text).buffer;
-  }
-
-  function encodeURIComponentPath(path) {
-    return path.split("/").map(encodeURIComponent).join("/");
   }
 
   // Mirrors the note-field behavior documented for PaperNote's own capture
@@ -473,6 +405,17 @@
         var data = JSON.parse(b64decode(json.content));
         data.entries = data.entries || [];
         return validateInboxData(data);
+      });
+  }
+
+  function getTagsData(branch) {
+    return ghJson(apiBase() + "/contents/" + TAGS_PATH + "?ref=" + branch, { headers: ghHeaders() })
+      .then(function (json) {
+        var data = JSON.parse(b64decode(json.content));
+        if (!Array.isArray(data)) {
+          throw new Error("tags.json looks damaged — expected a plain list of tag names. Nothing was changed.");
+        }
+        return data;
       });
   }
 
@@ -576,199 +519,68 @@
       });
   }
 
-  // ---------- Microsoft Graph: auth ----------
-
-  function initMsal() {
-    if (!azure || !azure.clientId) return Promise.resolve(null);
-    if (msalInitPromise) return msalInitPromise;
-    msalApp = new msal.PublicClientApplication({
-      auth: {
-        clientId: azure.clientId,
-        authority: "https://login.microsoftonline.com/common",
-        redirectUri: window.location.href
-      },
-      cache: { cacheLocation: "localStorage" }
-    });
-    msalInitPromise = msalApp.initialize().then(function () { return msalApp; });
-    return msalInitPromise;
-  }
-
-  function updateConnectRow() {
-    if (msalAccount) {
-      el.odStatus.textContent = "Connected as " + msalAccount.username;
-      el.connectBtn.textContent = "Switch";
-    } else {
-      el.odStatus.textContent = "Not connected";
-      el.connectBtn.textContent = "Connect";
-    }
-    el.gearDot.hidden = !!msalAccount;
-  }
-
-  function onConnected(account) {
-    msalAccount = account;
-    // Remember which of possibly several signed-in Microsoft accounts this
-    // is, so a future page load can reconnect to the same one instead of
-    // silently grabbing whichever cached account MSAL happens to list
-    // first (that's the bug that originally connected the wrong account).
-    azure.accountUsername = account.username;
-    saveAzureConfig();
-    updateConnectRow();
-    listTags().then(renderTagOptions).catch(function (err) {
-      setStatus("Couldn't list OneDrive tags — " + err.message, "err");
-    });
-  }
-
-  function tryRestoreAccount() {
-    return initMsal().then(function (app) {
-      if (!app) return;
-      var accounts = app.getAllAccounts();
-      if (!accounts.length) return;
-      var remembered = azure && azure.accountUsername;
-      var match = remembered ? accounts.filter(function (a) { return a.username === remembered; })[0] : null;
-      // Only auto-reconnect to a specific, previously-chosen account. With
-      // more than one Microsoft account signed into the browser and no
-      // memory of which is correct, stay disconnected and let Connect's
-      // account picker (below) ask explicitly rather than guessing.
-      if (match) onConnected(match);
-    });
-  }
-
-  el.connectBtn.addEventListener("click", function () {
-    initMsal().then(function (app) {
-      if (!app) { setStatus("Set an Azure Client ID above first.", "err"); return; }
-      return app.loginPopup({ scopes: GRAPH_SCOPES, prompt: "select_account" }).then(function (result) {
-        onConnected(result.account);
-      });
-    }).catch(function (err) {
-      setStatus("OneDrive connection failed — " + err.message, "err");
-    });
-  });
-
-  function getGraphToken() {
-    return initMsal().then(function (app) {
-      if (!app || !msalAccount) return Promise.reject(new Error("Not connected to OneDrive yet — open Manage to connect."));
-      return app.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: msalAccount })
-        .then(function (r) { return r.accessToken; })
-        .catch(function () {
-          return app.acquireTokenPopup({ scopes: GRAPH_SCOPES, account: msalAccount })
-            .then(function (r) { return r.accessToken; });
+  // Filing an entry is now a metadata edit — set its tag (and, if the row's
+  // rename field was filled in, its filename) — not a Microsoft Graph
+  // upload. The entry itself stays in inbox.json; only its tag changes, so
+  // (unlike attemptRemoval) no tree entry ever gets sha:null here. Mirrors
+  // attemptRemoval's same read-current-tree/commit/retry-on-conflict shape.
+  function attemptFiling(updates, attempt) {
+    var branch, commitSha;
+    return getDefaultBranch()
+      .then(function (b) {
+        branch = b;
+        return ghJson(apiBase() + "/git/refs/heads/" + branch, { headers: ghHeaders() });
+      })
+      .then(function (refJson) {
+        commitSha = refJson.object.sha;
+        return ghJson(apiBase() + "/git/commits/" + commitSha, { headers: ghHeaders() });
+      })
+      .then(function (commitJson) {
+        return getInboxDataFromTree(commitJson.tree.sha).then(function (data) {
+          var byId = {};
+          updates.forEach(function (u) { byId[u.id] = u; });
+          var filedCount = 0;
+          data.entries.forEach(function (e) {
+            var u = byId[e.id];
+            if (!u) return;
+            e.tag = u.tag;
+            e.filename = u.filename;
+            filedCount++;
+          });
+          var treeEntries = [
+            { path: INBOX_PATH, mode: "100644", type: "blob", content: JSON.stringify(data, null, 2) }
+          ];
+          return ghJson(apiBase() + "/git/trees", {
+            method: "POST",
+            headers: ghHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ base_tree: commitJson.tree.sha, tree: treeEntries })
+          }).then(function (treeJson) {
+            return ghJson(apiBase() + "/git/commits", {
+              method: "POST",
+              headers: ghHeaders({ "Content-Type": "application/json" }),
+              body: JSON.stringify({
+                message: "PaperFile: file " + filedCount + " entr" + (filedCount === 1 ? "y" : "ies"),
+                tree: treeJson.sha,
+                parents: [commitSha]
+              })
+            });
+          });
         });
-    });
-  }
-
-  // ---------- Microsoft Graph: tags, folders, upload ----------
-
-  function graphFetch(url, token, method, body) {
-    var headers = { Authorization: "Bearer " + token };
-    var opts = { method: method || "GET", headers: headers };
-    if (body !== undefined) {
-      headers["Content-Type"] = "application/json";
-      opts.body = JSON.stringify(body);
-    }
-    return fetch(url, opts).then(function (res) {
-      if (!res.ok) {
-        return res.json().catch(function () { return {}; }).then(function (b) {
-          throw new Error((b.error && b.error.message) || ("Microsoft Graph didn't accept that request (status " + res.status + ")."));
+      })
+      .then(function (newCommitJson) {
+        return fetch(apiBase() + "/git/refs/heads/" + branch, {
+          method: "PATCH",
+          headers: ghHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ sha: newCommitJson.sha })
         });
-      }
-      if (res.status === 204) return null;
-      return res.json();
-    });
-  }
-
-  function listTags() {
-    return getGraphToken().then(function (token) {
-      var url = DRIVE_BASE + "/root:/" + encodeURIComponentPath(TAG_ROOT_PATH) + ":/children?$top=200";
-      return graphFetch(url, token).then(function (result) {
-        return (result.value || [])
-          .filter(function (c) { return c.folder; })
-          .map(function (c) { return { id: c.id, name: c.name }; })
-          .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      })
+      .then(function (res) {
+        if (res.ok) return;
+        if (attempt < MAX_COMMIT_ATTEMPTS) {
+          return attemptFiling(updates, attempt + 1);
+        }
+        throw new Error("Couldn't save — someone else may have saved to the shared inbox at the same moment. Wait a few seconds and try again.");
       });
-    });
-  }
-
-  function ensureNotesFolder(tagId, token) {
-    if (notesFolderCache[tagId]) return Promise.resolve(notesFolderCache[tagId]);
-    var url = DRIVE_BASE + "/items/" + tagId + "/children?$top=200";
-    return graphFetch(url, token).then(function (result) {
-      var existing = (result.value || []).find(function (c) { return c.folder && c.name === "0000-02 Notes"; });
-      if (existing) { notesFolderCache[tagId] = existing.id; return existing.id; }
-      return graphFetch(DRIVE_BASE + "/items/" + tagId + "/children", token, "POST", {
-        name: "0000-02 Notes", folder: {}, "@microsoft.graph.conflictBehavior": "fail"
-      }).then(function (created) {
-        notesFolderCache[tagId] = created.id;
-        return created.id;
-      }).catch(function () {
-        // Someone else created it in the same moment — re-list and use it.
-        return graphFetch(url, token).then(function (r2) {
-          var e2 = (r2.value || []).find(function (c) { return c.folder && c.name === "0000-02 Notes"; });
-          if (e2) { notesFolderCache[tagId] = e2.id; return e2.id; }
-          throw new Error("Couldn't create or find the Notes folder for that tag.");
-        });
-      });
-    });
-  }
-
-  // 10MiB — a clean multiple of the 320KiB alignment Graph requires for
-  // upload-session fragments, and comfortably under its ~60MiB per-request
-  // cap. Sending a whole large file in one PUT (the old approach) gets
-  // rejected above that cap; splitting into fragments this size removes
-  // the ceiling entirely, up to whatever GitHub's own 100MB blob limit
-  // already allows through on the read side.
-  var UPLOAD_CHUNK_SIZE = 10 * 1024 * 1024;
-
-  function uploadToNotesFolder(notesFolderId, filename, arrayBuffer, token) {
-    var url = DRIVE_BASE + "/items/" + notesFolderId + ":/" + encodeURIComponentPath(filename) + ":/createUploadSession";
-    return graphFetch(url, token, "POST", {
-      item: { "@microsoft.graph.conflictBehavior": "rename" }
-    }).then(function (session) {
-      return uploadInChunks(session.uploadUrl, arrayBuffer);
-    });
-  }
-
-  function uploadInChunks(uploadUrl, arrayBuffer) {
-    var size = arrayBuffer.byteLength;
-    function uploadFrom(offset) {
-      var end = Math.min(offset + UPLOAD_CHUNK_SIZE, size);
-      var chunk = arrayBuffer.slice(offset, end);
-      return fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Length": String(chunk.byteLength),
-          "Content-Range": "bytes " + offset + "-" + (end - 1) + "/" + size
-        },
-        body: chunk
-      }).then(function (res) {
-        if (!res.ok) throw new Error("OneDrive rejected that upload. Try again, or try a smaller file.");
-        // Graph replies 202 with nextExpectedRanges for every fragment
-        // except the last, which completes with 200/201 and the item.
-        if (end >= size) return res.json();
-        return uploadFrom(end);
-      });
-    }
-    return uploadFrom(0);
-  }
-
-  // ---------- filing (used by both the batch button and a row's Retry) ----------
-
-  function bytesForEntry(entry, branch) {
-    if (entry.type === "text") return Promise.resolve(textToArrayBuffer(entry.textContent));
-    // Photo thumbnails already pulled the full blob for display — reuse
-    // those bytes at filing time instead of fetching the same blob twice.
-    if (entry.type === "photo" && thumbCache[entry.id]) {
-      return Promise.resolve(base64ToArrayBuffer(thumbCache[entry.id].split(",")[1]));
-    }
-    return fetchBlobBase64(entry.blobPath, branch).then(base64ToArrayBuffer);
-  }
-
-  function fileRow(entry, tagId, token, branch, overrideText) {
-    return ensureNotesFolder(tagId, token).then(function (notesFolderId) {
-      var filename = applyOverrideName(entry.filename, overrideText);
-      return bytesForEntry(entry, branch).then(function (bytes) {
-        return uploadToNotesFolder(notesFolderId, filename, bytes, token);
-      });
-    });
   }
 
   function entryById(id) {
@@ -783,10 +595,14 @@
     return getDefaultBranch()
       .then(function (branch) {
         lastBranch = branch;
-        return getInboxData(branch);
+        return Promise.all([getInboxData(branch), getTagsData(branch)]);
       })
-      .then(function (data) {
-        entries = data.entries || [];
+      .then(function (results) {
+        // Only entries with no tag yet belong in PaperFile's review list —
+        // an already-filed (tagged) entry stays in the shared inbox.json
+        // permanently now, it just no longer shows up here to be filed again.
+        entries = (results[0].entries || []).filter(function (e) { return !e.tag; });
+        tags = results[1];
         renderList();
         setStatus("");
       })
@@ -802,20 +618,15 @@
     placeholder.value = "";
     placeholder.textContent = "Tag…";
     select.appendChild(placeholder);
-    tags.forEach(function (t) {
+    tags.forEach(function (name) {
       var opt = document.createElement("option");
-      opt.value = t.id;
-      opt.textContent = t.name;
+      opt.value = name;
+      opt.textContent = name;
       select.appendChild(opt);
     });
     select.disabled = tags.length === 0;
-    if (current && tags.some(function (t) { return t.id === current; })) select.value = current;
+    if (current && tags.indexOf(current) !== -1) select.value = current;
     select.classList.toggle("placeholder", !select.value);
-  }
-
-  function renderTagOptions(list) {
-    tags = list;
-    Array.prototype.forEach.call(el.list.querySelectorAll(".tagSelect"), populateTagSelect);
   }
 
   // ---------- preview modal (photo/text only — documents keep the generic icon, no preview) ----------
@@ -1010,18 +821,15 @@
 
   function retryRow(id, tagSelect, newNameInput) {
     var entry = entryById(id);
-    var tagId = tagSelect.value;
-    if (!entry || !tagId) { setStatus("Pick a tag before retrying.", "err"); return; }
+    var tag = tagSelect.value;
+    if (!entry || !tag) { setStatus("Pick a tag before retrying.", "err"); return; }
     setStatus("Retrying…");
-    var token, branch;
-    getGraphToken()
-      .then(function (t) { token = t; return getDefaultBranch(); })
-      .then(function (b) { branch = b; return fileRow(entry, tagId, token, branch, newNameInput.value.trim()); })
+    var filename = applyOverrideName(entry.filename, newNameInput.value.trim());
+    attemptFiling([{ id: id, tag: tag, filename: filename }], 1)
       .then(function () {
         delete lastErrors[id];
-        return attemptRemoval([id], 1);
+        return fetchInbox();
       })
-      .then(function () { return fetchInbox(); })
       .then(function () { setStatus("Filed.", "ok"); })
       .catch(function (err) {
         lastErrors[id] = err.message;
@@ -1034,10 +842,12 @@
     var rowEls = Array.prototype.slice.call(el.list.querySelectorAll(".rowGroup"));
     var targets = rowEls.map(function (row) {
       var tagSelect = row.querySelector(".tagSelect");
-      var tagId = tagSelect ? tagSelect.value : "";
-      if (!tagId) return null;
+      var tag = tagSelect ? tagSelect.value : "";
+      if (!tag) return null;
+      var entry = entryById(row.dataset.id);
+      if (!entry) return null;
       var newNameInput = row.querySelector(".newNameInput");
-      return { id: row.dataset.id, tagId: tagId, override: newNameInput.value.trim() };
+      return { id: row.dataset.id, tag: tag, filename: applyOverrideName(entry.filename, newNameInput.value.trim()) };
     }).filter(Boolean);
 
     if (!targets.length) {
@@ -1046,46 +856,20 @@
     }
 
     el.fileBtn.disabled = true;
-    setStatus("Filing 0/" + targets.length + "…");
+    setStatus("Filing " + targets.length + "…");
 
-    var token, branch;
-    var filedIds = [];
-    var failCount = 0;
-
-    getGraphToken()
-      .then(function (t) { token = t; return getDefaultBranch(); })
-      .then(function (b) {
-        branch = b;
-        return targets.reduce(function (chain, target, i) {
-          return chain.then(function () {
-            var entry = entryById(target.id);
-            if (!entry) return;
-            return fileRow(entry, target.tagId, token, branch, target.override)
-              .then(function () {
-                filedIds.push(target.id);
-                delete lastErrors[target.id];
-              })
-              .catch(function (err) {
-                lastErrors[target.id] = err.message;
-                failCount++;
-              })
-              .then(function () { setStatus("Filing " + (i + 1) + "/" + targets.length + "…"); });
-          });
-        }, Promise.resolve());
-      })
+    // Filing is one combined commit for every tagged row, same as
+    // attemptRemoval already batches multiple discards into one commit —
+    // not N independent Graph calls the way the old OneDrive upload path was.
+    attemptFiling(targets, 1)
       .then(function () {
-        if (!filedIds.length) return;
-        return attemptRemoval(filedIds, 1);
+        targets.forEach(function (t) { delete lastErrors[t.id]; });
+        return fetchInbox();
       })
-      .then(function () { return fetchInbox(); })
-      .then(function () {
-        if (failCount) {
-          setStatus("Filed " + filedIds.length + " — " + failCount + " failed, see the error on each row.", "err");
-        } else {
-          setStatus("Filed " + filedIds.length + ".", "ok");
-        }
-      })
+      .then(function () { setStatus("Filed " + targets.length + ".", "ok"); })
       .catch(function (err) {
+        targets.forEach(function (t) { lastErrors[t.id] = err.message; });
+        renderList();
         setStatus("Filing failed — " + err.message, "err");
       })
       .finally(function () { el.fileBtn.disabled = false; });
@@ -1096,8 +880,6 @@
     openSettings();
   } else {
     fetchInbox();
-    tryRestoreAccount();
-    updateConnectRow();
   }
 })();
 </script>
